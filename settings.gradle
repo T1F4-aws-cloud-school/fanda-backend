@@ -1,0 +1,3 @@
+rootProject.name = 'fanda-backend'
+
+include 'shop', 'review-banner', 'user-behavior', 'feedback-improve'
