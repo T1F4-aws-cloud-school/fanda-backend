@@ -17,6 +17,8 @@ public class Review {
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    private String imageUrl;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
