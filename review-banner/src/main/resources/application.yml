@@ -1,6 +1,0 @@
-spring:
-  application:
-    name: review-banner
-
-server:
-  port: 8002

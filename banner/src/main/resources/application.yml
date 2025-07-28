@@ -1,6 +1,6 @@
 spring:
   application:
-    name: shop
+    name: banner
 
 server:
-  port: 8004
+  port: 8003

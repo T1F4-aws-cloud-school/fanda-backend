@@ -1,6 +1,0 @@
-spring:
-  application:
-    name: feedback-improve
-
-server:
-  port: 8001
