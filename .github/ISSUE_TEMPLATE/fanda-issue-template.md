@@ -1,7 +1,7 @@
 ---
 name: FANDA Issue Template
 about: Issue Template for FANDA Project
-title: [Feat] 
+title: "[Feat] "
 labels: ''
 assignees: ''
 
