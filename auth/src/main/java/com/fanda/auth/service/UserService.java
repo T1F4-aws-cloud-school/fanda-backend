@@ -20,10 +20,6 @@ public class UserService {
     private final UserRepository userRepository;
 
     public UserJoinResponse join(UserJoinRequest request){
-
-        if(userRepository.existsByUserId(request.userId())){
-            throw new IllegalArgumentException("이미 사용 중인 Id입니다.");
-        }
         final User user = request.toEntity(passwordEncoder.encode(request.password()));
         userRepository.save(user);
         return UserJoinResponse.from(user);
