@@ -6,14 +6,14 @@ import com.fanda.auth.entity.User;
 public record UserJoinRequest(
         String username,
         String password,
-        String userId
+        String nickname
 ) {
 
     public User toEntity(String encodedPassword){
         return User.builder()
                 .username(username)
                 .password(encodedPassword)
-                .userId(userId)
+                .nickname(nickname)
                 .role(Role.USER)
                 .build();
     }

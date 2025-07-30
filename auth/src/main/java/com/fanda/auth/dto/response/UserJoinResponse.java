@@ -7,14 +7,14 @@ import lombok.Builder;
 public record UserJoinResponse(
         Long id,
         String username,
-        String userId
+        String nickname
 ) {
 
     public static UserJoinResponse from(User user){
         return UserJoinResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .userId(user.getUserId())
+                .nickname(user.getNickname())
                 .build();
     }
 }
