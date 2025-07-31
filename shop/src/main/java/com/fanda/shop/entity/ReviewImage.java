@@ -1,7 +1,9 @@
 package com.fanda.shop.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 
+@Getter
 @Entity
 public class ReviewImage {
 
