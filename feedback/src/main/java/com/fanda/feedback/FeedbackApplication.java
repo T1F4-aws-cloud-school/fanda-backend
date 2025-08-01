@@ -1,13 +1,13 @@
-package com.fanda.feedback_improve;
+package com.fanda.feedback;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class FeedbackImproveApplication {
+public class FeedbackApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(FeedbackImproveApplication.class, args);
+		SpringApplication.run(FeedbackApplication.class, args);
 	}
 
 }
