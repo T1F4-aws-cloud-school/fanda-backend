@@ -1,12 +1,14 @@
 package com.fanda.feedback.entity;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
+@Builder
 @Table(name = "collected_review")
 public class CollectedReview {
 
