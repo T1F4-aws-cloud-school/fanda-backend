@@ -9,6 +9,6 @@ import java.util.List;
 @FeignClient(name = "shop", url = "http://localhost:8006")
 public interface ShopClient {
 
-    @GetMapping("/reviews")
+    @GetMapping("/api/v1/reviews")
     List<ReviewResponseDto> getAllReviews();
 }
