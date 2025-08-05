@@ -17,6 +17,6 @@ public class ReviewReportController {
 
     @PostMapping("/generate")
     public ResponseEntity<ReportResponseDto> generateReports(){
-        return ResponseEntity.ok(reviewAnalysisService.generateReports());
+        return ResponseEntity.ok(reviewAnalysisService.generateAndUploadPdfReports());
     }
 }
