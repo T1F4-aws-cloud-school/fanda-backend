@@ -1,11 +1,15 @@
 package com.fanda.feedback.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Getter
 @Builder
@@ -18,6 +22,9 @@ public class CollectedReview {
 
     @Column(nullable = false, unique = false)
     private Long reviewId;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String content;
 
     @Column(nullable = false)
     private LocalDateTime collectedAt;

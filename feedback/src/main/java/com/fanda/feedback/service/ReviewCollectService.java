@@ -46,6 +46,7 @@ public class ReviewCollectService {
             collectedReviewRepository.save(
                     CollectedReview.builder()
                             .reviewId(review.id())
+                            .content(review.content())
                             .collectedAt(LocalDateTime.now())
                             .build()
             );
