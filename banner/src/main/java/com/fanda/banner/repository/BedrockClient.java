@@ -1,7 +1,6 @@
-package com.fanda.feedback.repository;
+package com.fanda.banner.repository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.SdkBytes;

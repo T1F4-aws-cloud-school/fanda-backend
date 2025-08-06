@@ -1,6 +1,6 @@
-package com.fanda.feedback.repository;
+package com.fanda.banner.repository;
 
-import com.fanda.feedback.dto.ReviewResponseDto;
+import com.fanda.banner.dto.ReviewResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 

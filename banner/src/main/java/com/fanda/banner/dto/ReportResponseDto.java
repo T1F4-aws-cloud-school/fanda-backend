@@ -1,4 +1,4 @@
-package com.fanda.feedback.dto;
+package com.fanda.banner.dto;
 
 public record ReportResponseDto(
         String positiveReportUrl,

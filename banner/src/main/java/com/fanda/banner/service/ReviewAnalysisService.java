@@ -1,12 +1,12 @@
-package com.fanda.feedback.service;
+package com.fanda.banner.service;
 
-import com.fanda.feedback.config.S3Uploader;
-import com.fanda.feedback.dto.ReportResponseDto;
-import com.fanda.feedback.entity.CollectedReview;
-import com.fanda.feedback.generator.PdfGenerator;
-import com.fanda.feedback.repository.BedrockClient;
-import com.fanda.feedback.repository.CollectedReviewRepository;
-import com.fanda.feedback.template.PromptTemplate;
+import com.fanda.banner.config.S3Uploader;
+import com.fanda.banner.dto.ReportResponseDto;
+import com.fanda.banner.entity.CollectedReview;
+import com.fanda.banner.generator.PdfGenerator;
+import com.fanda.banner.repository.BedrockClient;
+import com.fanda.banner.repository.CollectedReviewRepository;
+import com.fanda.banner.template.PromptTemplate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

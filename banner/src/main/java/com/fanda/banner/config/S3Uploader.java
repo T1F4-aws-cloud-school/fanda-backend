@@ -1,4 +1,4 @@
-package com.fanda.feedback.config;
+package com.fanda.banner.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

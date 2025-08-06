@@ -1,9 +1,9 @@
-package com.fanda.feedback.service;
+package com.fanda.banner.service;
 
-import com.fanda.feedback.dto.ReviewResponseDto;
-import com.fanda.feedback.entity.CollectedReview;
-import com.fanda.feedback.repository.CollectedReviewRepository;
-import com.fanda.feedback.repository.ShopClient;
+import com.fanda.banner.dto.ReviewResponseDto;
+import com.fanda.banner.entity.CollectedReview;
+import com.fanda.banner.repository.CollectedReviewRepository;
+import com.fanda.banner.repository.ShopClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

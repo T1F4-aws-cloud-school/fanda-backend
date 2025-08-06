@@ -1,7 +1,7 @@
-package com.fanda.feedback.controller;
+package com.fanda.banner.controller;
 
-import com.fanda.feedback.dto.ReviewResponseDto;
-import com.fanda.feedback.service.ReviewCollectService;
+import com.fanda.banner.dto.ReviewResponseDto;
+import com.fanda.banner.service.ReviewCollectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

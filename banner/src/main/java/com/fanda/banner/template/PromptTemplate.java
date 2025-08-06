@@ -1,4 +1,4 @@
-package com.fanda.feedback.template;
+package com.fanda.banner.template;
 
 public class PromptTemplate {
 

@@ -1,4 +1,4 @@
-package com.fanda.feedback.config;
+package com.fanda.banner.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

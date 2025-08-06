@@ -1,10 +1,10 @@
-package com.fanda.review_banner;
+package com.fanda.banner;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ReviewBannerApplicationTests {
+class FeedbackApplicationTests {
 
 	@Test
 	void contextLoads() {
