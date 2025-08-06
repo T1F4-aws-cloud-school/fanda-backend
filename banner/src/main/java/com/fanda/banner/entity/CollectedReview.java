@@ -1,4 +1,4 @@
-package com.fanda.feedback.entity;
+package com.fanda.banner.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

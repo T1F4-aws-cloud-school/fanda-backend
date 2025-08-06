@@ -1,4 +1,4 @@
-package com.fanda.feedback.generator;
+package com.fanda.banner.generator;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;

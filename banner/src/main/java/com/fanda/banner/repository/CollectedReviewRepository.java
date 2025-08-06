@@ -1,6 +1,6 @@
-package com.fanda.feedback.repository;
+package com.fanda.banner.repository;
 
-import com.fanda.feedback.entity.CollectedReview;
+import com.fanda.banner.entity.CollectedReview;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
