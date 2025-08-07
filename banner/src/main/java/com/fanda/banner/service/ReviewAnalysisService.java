@@ -94,15 +94,21 @@ public class ReviewAnalysisService {
 
     }
 
-    private String extractCatchPhrase(String text){
-        for(String line : text.split("\n")){
+    private String extractCatchPhrase(String text) {
+        boolean inTarget = false;
+        for (String line : text.split("\n")) {
             line = line.trim();
-            if(line.matches("^(\\d+\\.|[-*•])\\s?.+")){
-                return line.replaceFirst("^(\\d+\\.|[-*•])\\s?", "");
+            if (line.equalsIgnoreCase("[MARKETING_PHRASES]")) {
+                inTarget = true;
+                continue;
+            }
+            if (inTarget && line.startsWith("-")) {
+                return line.substring(1).trim();
             }
         }
-        return "캐치프레이즈";
+        return "[캐치프레이즈 추출 실패]";
     }
+
 
     private String extractProductName(String text){
         for(String line : text.split("\n")) {
