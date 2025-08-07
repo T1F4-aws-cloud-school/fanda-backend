@@ -5,12 +5,15 @@ import com.fanda.banner.entity.CollectedReview;
 import com.fanda.banner.repository.CollectedReviewRepository;
 import com.fanda.banner.repository.ShopClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReviewCollectService {
@@ -53,6 +56,12 @@ public class ReviewCollectService {
         }
 
         return newReviews;
+    }
+
+    @Scheduled(cron = "0 0 8 * * *", zone = "Asia/Seoul")
+    public void scheduledReviewCollection() {
+        List<ReviewResponseDto> collected = collectNewReviews();
+        log.info("Collected {} new reviews at 08:00 AM", collected.size());
     }
 
 }
