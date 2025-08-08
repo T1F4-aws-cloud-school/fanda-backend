@@ -30,30 +30,54 @@ public class PromptTemplate {
         """.formatted(reviewText);
     }
 
-    public static String getNegativePrompt(String reviewText) {
+    public static String getNegativePrompt(String reviewText, String productName) {
         return """
-            당신은 제품개발팀을 위한 리뷰 분석 전문가입니다.
-    
-            다음은 여러 제품에 대한 소비자 리뷰 모음입니다. 제품명을 기준으로 나누지 말고, 전체 리뷰를 종합적으로 분석해 주세요.
-    
-            아래의 고정된 형식을 따라 출력해 주세요. 형식을 반드시 지키고, 섹션 제목은 그대로 유지해 주세요:
-    
-            [SUMMARY]
-            전반적으로 발견된 주요 제품 문제점을 2~3줄로 요약해 주세요. (배송, 포장, 물류는 제외)
-    
-            [ISSUE_KEYWORDS]
-            가장 자주 언급된 제품 관련 불만 키워드를 3~5개 정도 나열해 주세요.
-            - 키워드 1
-            - 키워드 2
-            - 키워드 3
-    
-            [IMPROVEMENT_SUGGESTIONS]
-            제품 개발을 위한 개선 아이디어 또는 실험 방향을 2~3개 제안해 주세요.
-    
-            아래는 리뷰 목록입니다:
-            ---
-            %s
-        """.formatted(reviewText);
+                당신은 제품개발팀을 위한 리뷰 분석 전문가입니다.
+                
+                아래는 [%s] 상품에 대한 소비자 리뷰 모음입니다.
+                전체 리뷰를 종합적으로 분석해 주세요.
+                
+                아래의 고정된 형식을 따라 출력해 주세요. 섹션 제목은 그대로 유지해 주세요:
+                
+                [SUMMARY]
+                [%s] 상품에서 전반적으로 발견된 주요 문제점을 2~3줄로 요약해 주세요. (배송, 포장, 물류는 제외)
+                
+                [ISSUE_KEYWORDS]
+                가장 자주 언급된 제품 관련 불만 키워드를 3~5개 정도 나열해 주세요.
+                - 키워드 1
+                - 키워드 2
+                - 키워드 3
+                
+                [IMPROVEMENT_SUGGESTIONS]
+                제품 개발을 위한 개선 아이디어 또는 실험 방향을 2~3개 제안해 주세요.
+                
+                아래는 리뷰 목록입니다:
+                ---
+                %s
+                """.formatted(productName, productName, reviewText);
+        //        return """
+//            당신은 제품개발팀을 위한 리뷰 분석 전문가입니다.
+//
+//            다음은 여러 제품에 대한 소비자 리뷰 모음입니다. 제품명을 기준으로 나누지 말고, 전체 리뷰를 종합적으로 분석해 주세요.
+//
+//            아래의 고정된 형식을 따라 출력해 주세요. 형식을 반드시 지키고, 섹션 제목은 그대로 유지해 주세요:
+//
+//            [SUMMARY]
+//            전반적으로 발견된 주요 제품 문제점을 2~3줄로 요약해 주세요. (배송, 포장, 물류는 제외)
+//
+//            [ISSUE_KEYWORDS]
+//            가장 자주 언급된 제품 관련 불만 키워드를 3~5개 정도 나열해 주세요.
+//            - 키워드 1
+//            - 키워드 2
+//            - 키워드 3
+//
+//            [IMPROVEMENT_SUGGESTIONS]
+//            제품 개발을 위한 개선 아이디어 또는 실험 방향을 2~3개 제안해 주세요.
+//
+//            아래는 리뷰 목록입니다:
+//            ---
+//            %s
+//        """.formatted(reviewText);
     }
 
     public static String getBannerImagePrompt(String englishCatchPhrase){

@@ -6,6 +6,7 @@ import com.fanda.banner.entity.CollectedReview;
 import com.fanda.banner.generator.PdfGenerator;
 import com.fanda.banner.repository.BedrockClient;
 import com.fanda.banner.repository.CollectedReviewRepository;
+import com.fanda.banner.repository.ShopClient;
 import com.fanda.banner.template.PromptTemplate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,9 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,16 +27,40 @@ public class ReviewAnalysisService {
     private final BedrockClient bedrockClient;
     private final S3Uploader s3Uploader;
     private final ImageGenerationService imageGenerationService;
+    private final ShopClient shopClient;
 
     public ReportResponseDto generateAndUploadPdfReports(){
+        // 오늘 수집된 리뷰
         List<CollectedReview> reviews = collectedReviewRepository.findAll();
+        System.out.println("전체 리뷰 수: " + reviews.size());
 
-        String reviewText = reviews.stream().map(CollectedReview::getContent)
+        reviews.forEach(r -> {
+            System.out.printf("리뷰ID=%d, productId=%s, rating=%d\n",
+                    r.getReviewId(), r.getProductId(), r.getRating());
+        });
+
+//        String reviewText = reviews.stream().map(CollectedReview::getContent)
+//                .collect(Collectors.joining("\n- 리뷰: ", "\n", ""));
+
+        // 긍정 리포트 용
+        String positiveReviewText = reviews.stream().map(CollectedReview::getContent).collect(Collectors.joining("\n- 리뷰: ", "\n", ""));
+
+        // 부정 리포트 용 : 평점 낮은 상품 리뷰만
+        Long lowestProductId = findLowestRatedProductId(reviews);
+
+        // 상품명 추출
+        String lowestProductName = shopClient.getProductName(lowestProductId);
+
+        List<CollectedReview> negativeReviews = reviews.stream()
+                .filter(r -> r.getProductId().equals(lowestProductId)).toList();
+
+        String negativeReviewText = negativeReviews.stream()
+                .map(CollectedReview::getContent)
                 .collect(Collectors.joining("\n- 리뷰: ", "\n", ""));
 
         // 1. 프롬프트 생성
-        String positivePrompt = PromptTemplate.getPositivePrompt(reviewText);
-        String negativePrompt = PromptTemplate.getNegativePrompt(reviewText);
+        String positivePrompt = PromptTemplate.getPositivePrompt(positiveReviewText);
+        String negativePrompt = PromptTemplate.getNegativePrompt(negativeReviewText, lowestProductName);
 
         // 2. 리포트 생성
         String positiveReport = bedrockClient.generate(positivePrompt);
@@ -71,7 +98,6 @@ public class ReviewAnalysisService {
         String negativeKey = "reports/negative/negative_" + timestamp + ".pdf";
 
         // s3 업로드
-        String imageUrl = s3Uploader.uploadImageBytes(imageBytes, imageKey);
         File positivePdf = new File("positive_"+timestamp+".pdf");
         File negativePdf = new File("negative_"+timestamp+".pdf");
 
@@ -79,8 +105,10 @@ public class ReviewAnalysisService {
             PdfGenerator.saveTextAsPdf(positiveReport, positivePdf.getPath());
             PdfGenerator.saveTextAsPdf(negativeReport, negativePdf.getPath());
 
-            String positiveUrl = s3Uploader.uploadFile(positivePdf, positiveKey);
-            String negativeUrl = s3Uploader.uploadFile(negativePdf, negativeKey);
+            String imageUrl = s3Uploader.uploadImageBytes(imageBytes, imageKey);
+
+            s3Uploader.uploadFile(positivePdf, positiveKey);
+            s3Uploader.uploadFile(negativePdf, negativeKey);
 
             return new ReportResponseDto(imageUrl, catchPhraseKo);
         }
@@ -92,6 +120,20 @@ public class ReviewAnalysisService {
             negativePdf.delete();
         }
 
+    }
+
+    // 평점 낮은 상품 ID 반환
+    private Long findLowestRatedProductId(List<CollectedReview> reviews) {
+        return reviews.stream()
+                .filter(r -> r.getProductId() != null && r.getProductId() > 0) // 잘못된 값 방지
+                .collect(Collectors.groupingBy(
+                        CollectedReview::getProductId,
+                        Collectors.averagingInt(CollectedReview::getRating)
+                ))
+                .entrySet().stream()
+                .min(Comparator.comparingDouble(Map.Entry::getValue))
+                .map(Map.Entry::getKey)
+                .orElseThrow(() -> new IllegalArgumentException("평점 낮은 상품 없음"));
     }
 
     private String extractCatchPhrase(String text) {
@@ -110,6 +152,7 @@ public class ReviewAnalysisService {
     }
 
 
+    // 상품명 추출
     private String extractProductName(String text){
         for(String line : text.split("\n")) {
             line = line.trim();
