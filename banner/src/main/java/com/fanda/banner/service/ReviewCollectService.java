@@ -2,6 +2,7 @@ package com.fanda.banner.service;
 
 import com.fanda.banner.dto.ReviewResponseDto;
 import com.fanda.banner.entity.CollectedReview;
+import com.fanda.banner.entity.ImprovementPhase;
 import com.fanda.banner.repository.CollectedReviewRepository;
 import com.fanda.banner.repository.ShopClient;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,9 @@ public class ReviewCollectService {
                             .reviewId(review.id())
                             .content(review.content())
                             .collectedAt(LocalDateTime.now())
+                            .phase(ImprovementPhase.BEFORE)
+                            .productId(review.productId())
+                            .rating(review.rating())
                             .build()
             );
         }
@@ -62,6 +66,40 @@ public class ReviewCollectService {
     public void scheduledReviewCollection() {
         List<ReviewResponseDto> collected = collectNewReviews();
         log.info("Collected {} new reviews at 08:00 AM", collected.size());
+    }
+
+    public List<ReviewResponseDto> collectNewReviewsByProductAndPhase(Long productId, ImprovementPhase phase){
+        List<ReviewResponseDto> allReviews = shopClient.getAllReviews();
+
+        List<ReviewResponseDto> filtered = new ArrayList<>();
+        for(ReviewResponseDto review : allReviews){
+            if(review.productId().equals(productId)){
+                filtered.add(review);
+            }
+        }
+
+        List<Long> reviewIds = filtered.stream().map(ReviewResponseDto::id).toList();
+        List<CollectedReview> collected = collectedReviewRepository.findAllByReviewIdIn(reviewIds);
+        List<Long> alreadySavedIds = collected.stream().map(CollectedReview::getReviewId).toList();
+
+        List<ReviewResponseDto> newReviews = new ArrayList<>();
+        for(ReviewResponseDto review : filtered){
+            if(!alreadySavedIds.contains(review.id())){
+                newReviews.add(review);
+            }
+        }
+
+        for(ReviewResponseDto review : newReviews){
+            collectedReviewRepository.save(
+                    CollectedReview.builder()
+                            .reviewId(review.id())
+                            .content(review.content())
+                            .collectedAt(LocalDateTime.now())
+                            .phase(phase)
+                            .build()
+            );
+        }
+        return newReviews;
     }
 
 }

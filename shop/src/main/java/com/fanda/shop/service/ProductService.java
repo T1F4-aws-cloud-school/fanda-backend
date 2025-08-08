@@ -56,4 +56,9 @@ public class ProductService {
                 reviewResponseDtoList
         );
     }
+
+    public String getProductName(Long productId){
+        Product product = productRepository.findById(productId).orElseThrow(()-> new NoSuchElementException("상품을 찾을 수 없습니다."));
+        return product.getName();
+    }
 }

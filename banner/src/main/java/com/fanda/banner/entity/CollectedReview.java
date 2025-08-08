@@ -28,4 +28,14 @@ public class CollectedReview {
 
     @Column(nullable = false)
     private LocalDateTime collectedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ImprovementPhase phase;
+
+    @Column(nullable = false)
+    private Long productId;
+
+    @Column(nullable = false)
+    private Integer rating;
 }
