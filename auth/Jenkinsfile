@@ -1,0 +1,220 @@
+pipeline {
+    agent any
+
+    environment {
+        HARBOR_URL = '192.168.2.111'
+        PROJECT_NAME = 'fanda-be'
+        IMAGE_NAME = "${HARBOR_URL}/${PROJECT_NAME}/auth-service"
+        IMAGE_TAG = "${env.GIT_COMMIT.take(8)}"
+        DOCKER_BUILDKIT = '1'
+        GRADLE_OPTS = '-Dorg.gradle.daemon=false -Dorg.gradle.caching=false'
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10', daysToKeepStr: '30'))
+        disableConcurrentBuilds()
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('트리거 검증') {
+            steps {
+                script {
+                    def author = sh(script: "git log -1 --pretty=%an", returnStdout: true).trim()
+                    def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+
+                    if (author == "Jenkins CI" || commitMessage.contains('[skip ci]')) {
+                        echo "Jenkins CI 커밋 감지 - 파이프라인 스킵"
+                        env.SKIP_ALL = 'true'
+                        currentBuild.result = 'SUCCESS'
+                        currentBuild.description = "자동 스킵"
+                        return
+                    }
+                    env.SKIP_ALL = 'false'
+                }
+            }
+        }
+
+        stage('환경 검증') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                echo "Auth 서비스 빌드 시작: ${IMAGE_NAME}:${IMAGE_TAG}"
+                dir('auth') {
+                    sh '''
+                        # 필수 파일 존재 확인
+                        for file in build.gradle src/main/java Dockerfile; do
+                            [ ! -e "$file" ] && echo "필수 파일/디렉토리 누락: $file" && exit 1
+                        done
+
+                        # Gradle wrapper 실행 권한 확인
+                        [ -f "gradlew" ] && chmod +x gradlew
+
+                        echo "Auth 서비스 환경 검증 완료"
+                    '''
+                }
+            }
+        }
+
+        stage('소스 코드 분석') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                dir('auth') {
+                    script {
+                        // Gradle 테스트 실행
+                        sh '''
+                            echo "Auth 서비스 Gradle 테스트 실행..."
+                            if [ -f "gradlew" ]; then
+                                ./gradlew clean test --no-daemon
+                            else
+                                gradle clean test --no-daemon
+                            fi
+
+                            echo "Auth 서비스 테스트 완료"
+                        '''
+                    }
+                }
+            }
+            post {
+                always {
+                    // 테스트 결과 보고서 저장
+                    publishTestResults testResultsPattern: 'auth/build/test-results/test/*.xml'
+                    archiveArtifacts artifacts: 'auth/build/reports/tests/test/**', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('이미지 중복 확인') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                script {
+                    env.SKIP_BUILD = sh(
+                        script: "docker manifest inspect ${IMAGE_NAME}:${IMAGE_TAG} >/dev/null 2>&1",
+                        returnStatus: true
+                    ) == 0 ? 'true' : 'false'
+
+                    echo env.SKIP_BUILD == 'true' ?
+                        "이미지 재사용: ${IMAGE_NAME}:${IMAGE_TAG}" :
+                        "새 이미지 빌드: ${IMAGE_NAME}:${IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('빌드 & 푸시') {
+            when {
+                allOf {
+                    environment name: 'SKIP_ALL', value: 'false'
+                    environment name: 'SKIP_BUILD', value: 'false'
+                }
+            }
+            steps {
+                dir('auth') {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'Harbor-credentials',
+                        usernameVariable: 'HARBOR_USER',
+                        passwordVariable: 'HARBOR_PASS'
+                    )]) {
+                        sh '''
+                            # Docker 이미지 빌드
+                            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest \
+                                --label "version=${IMAGE_TAG}" \
+                                --label "build-date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+                                --label "service=auth" .
+
+                            # Harbor 로그인 및 이미지 푸시
+                            echo "${HARBOR_PASS}" | docker login ${HARBOR_URL} -u "${HARBOR_USER}" --password-stdin
+                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                            docker push ${IMAGE_NAME}:latest
+
+                            echo "Auth 서비스 빌드 완료: ${IMAGE_NAME}:${IMAGE_TAG}"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('보안 스캔') {
+            when {
+                allOf {
+                    environment name: 'SKIP_ALL', value: 'false'
+                    environment name: 'SKIP_BUILD', value: 'false'
+                }
+            }
+            steps {
+                sh '''
+                    echo "Trivy 보안 스캔 실행..."
+                    trivy image --server http://192.168.2.248:4954 \
+                        --exit-code 1 --severity HIGH,CRITICAL ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('배포 업데이트') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                script {
+                    try {
+                        sh '''
+                            git config --global user.email "jenkins@company.com"
+                            git config --global user.name "Jenkins CI"
+                            git fetch origin && git checkout dev && git reset --hard origin/dev
+                        '''
+
+                        def currentTag = sh(
+                            script: "grep -o 'image: .*/auth-service:.*' auth/k8s/deployment.yaml | cut -d':' -f3 || echo 'none'",
+                            returnStdout: true
+                        ).trim()
+
+                        if (currentTag == env.IMAGE_TAG) {
+                            echo "이미지 태그 동일 - 스킵"
+                            return
+                        }
+
+                        sh '''
+                            sed -i "s|image: ${HARBOR_URL}/${PROJECT_NAME}/auth-service:.*|image: ${HARBOR_URL}/${PROJECT_NAME}/auth-service:${IMAGE_TAG}|g" auth/k8s/deployment.yaml
+                            git add auth/k8s/deployment.yaml
+                            git commit -m "Auto-update auth-service image tag to ${IMAGE_TAG} [skip ci]"
+                        '''
+
+                        withCredentials([usernamePassword(
+                            credentialsId: 'github-credentials',
+                            usernameVariable: 'GITHUB_USER',
+                            passwordVariable: 'GITHUB_TOKEN'
+                        )]) {
+                            sh '''
+                                git push https://${GITHUB_TOKEN}@github.com/T1F4-aws-cloud-school/fanda-backend.git HEAD:dev
+                                echo "Git 푸시 성공"
+                            '''
+                        }
+
+                        echo "배포 업데이트 완료 - ArgoCD가 배포를 진행합니다"
+
+                    } catch (Exception e) {
+                        echo "배포 업데이트 실패: ${e.message}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                if (env.SKIP_ALL != 'true') {
+                    sh '''
+                        docker logout ${HARBOR_URL} 2>/dev/null || true
+                        docker rmi ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest 2>/dev/null || true
+                        docker system prune -f --volumes
+                    '''
+                }
+            }
+        }
+        success {
+            echo env.SKIP_ALL == 'true' ? "자동 스킵 완료" :
+                 env.SKIP_BUILD == 'true' ? "이미지 재사용 성공" : "Auth 서비스 CI/CD 성공"
+        }
+        unstable { echo "빌드 성공, Git 업데이트 실패" }
+        failure { echo "Auth 서비스 빌드 실패" }
+        cleanup { sh 'docker container prune -f || true' }
+    }
+}
