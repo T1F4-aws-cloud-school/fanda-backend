@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fanda-shop-deploy
+  namespace: fanda-be-shop
+  labels:
+    app: fanda-shop
+    version: v1
+    component: backend
+    service: shop
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: fanda-shop
+  template:
+    metadata:
+      labels:
+        app: fanda-shop
+        version: v1
+        component: backend
+        service: shop
+    spec:
+      containers:
+        - name: fanda-shop
+          # Jenkins가 자동으로 업데이트하는 이미지 태그
+          image: 192.168.2.111/fanda-be/shop-service:placeholder
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8003
+              name: http
+              protocol: TCP
+
+          env:
+            # Spring Boot 프로파일
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+
+            # 타임존 설정
+            - name: TZ
+              value: "Asia/Seoul"
+
+            # JVM 옵션
+            - name: JAVA_OPTS
+              value: "-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
+
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://mysql.fanda-db-ms.svc.cluster.local:3306/shop_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul"
+
+            # 데이터베이스 연결 정보 (공개)
+            - name: DB_HOST
+              value: "mysql.fanda-db-ms.svc.cluster.local"
+
+            # 데이터베이스 인증 정보 (Secret에서 참조) - fandauser 계정 사용
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-shop-secret
+                  key: DB_USER_USERNAME
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-shop-secret
+                  key: DB_USER_PASSWORD
+
+            # JPA 설정
+            - name: JPA_DDL_AUTO
+              value: "update"  # 처음 배포시 테이블 자동 생성
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+          # 헬스 체크 설정
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8003
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8003
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+
+          # 시작 프로브
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8003
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+
+      # 보안 컨텍스트
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
