@@ -8,6 +8,12 @@ spring:
       enabled: false
     gateway:
       routes:
+        - id: auth
+          uri: http://localhost:8002
+          predicates:
+            - Path=/auth/**
+          filters:
+            - StripPrefix=1
         - id: feedback-admin #관리자 경로
           uri: http://localhost:8003 #feedback 주로
           predicates:

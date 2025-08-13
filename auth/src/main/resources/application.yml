@@ -15,5 +15,16 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  token:
+    access-expiration-time: 900000
+    refresh-expiration-time: 1209600000
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+
 server:
   port: 8002
