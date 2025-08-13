@@ -128,6 +128,3 @@ spec:
         runAsGroup: 1000
         runAsNonRoot: true
         runAsUser: 1000
-
-      # 젠킨스 테스트를 위함
-      # 젠킨스 테스트 2
