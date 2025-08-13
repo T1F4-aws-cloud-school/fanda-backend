@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fanda-auth-deploy
+  namespace: fanda-auth
+  labels:
+    app: fanda-auth
+    version: v1
+    component: backend
+    service: auth
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: fanda-auth
+  template:
+    metadata:
+      labels:
+        app: fanda-auth
+        version: v1
+        component: backend
+        service: auth
+    spec:
+      containers:
+        - name: fanda-auth
+          # Jenkins가 자동으로 업데이트하는 이미지 태그
+          image: 192.168.2.111/fanda-be/auth-service:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+
+          env:
+            # Spring Boot 프로파일
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+
+            # 타임존 설정
+            - name: TZ
+              value: "Asia/Seoul"
+
+            # JVM 옵션
+            - name: JAVA_OPTS
+              value: "-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
+
+            # 데이터베이스 연결 정보
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://mysql-0.fanda-db-ms.svc.cluster.local:3306/auth_db?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8"
+
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "fandauser"
+
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "fandapass"
+
+            # Redis 연결 정보
+            - name: SPRING_REDIS_HOST
+              value: "redis-master-0.fanda-redis.svc.cluster.local"
+
+            - name: SPRING_REDIS_PORT
+              value: "6379"
+
+            - name: SPRING_REDIS_PASSWORD
+              value: "fanda123!"
+
+            # JWT 설정
+            - name: JWT_SECRET
+              value: "fanda-jwt-secret-key-for-production-environment"
+
+            # JPA 설정
+            - name: JPA_DDL_AUTO
+              value: "update"  # 처음 배포시 테이블 자동 생성
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+          # 헬스 체크 설정
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+
+          # 시작 프로브
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+
+      # 보안 컨텍스트
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
