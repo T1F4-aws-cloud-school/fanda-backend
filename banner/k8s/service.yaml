@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fanda-banner-service
+  namespace: fanda-be-marketing
+  labels:
+    app: fanda-banner
+    service: banner
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8004
+      targetPort: 8004
+      protocol: TCP
+      name: http
+  selector:
+    app: fanda-banner
