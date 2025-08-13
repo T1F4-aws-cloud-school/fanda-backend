@@ -16,7 +16,7 @@ import reactor.core.publisher.Mono;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 
-@Component
+//@Component
 public class AdminGuardFilter implements GlobalFilter, Ordered {
 
     private final SecretKey secretKey;
