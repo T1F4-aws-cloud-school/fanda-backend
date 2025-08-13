@@ -49,10 +49,10 @@ USER appuser
 
 # 헬스체크 추가
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/actuator/health || exit 1
+    CMD curl -f http://localhost:8002/actuator/health || exit 1
 
 # 포트 노출
-EXPOSE 8080
+EXPOSE 8002
 
 # 애플리케이션 실행
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

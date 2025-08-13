@@ -2,15 +2,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: fanda-auth-service
-  namespace: fanda-auth
+  namespace: fanda-be-auth
   labels:
     app: fanda-auth
     service: auth
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8002
+      targetPort: 8002
       protocol: TCP
       name: http
   selector:

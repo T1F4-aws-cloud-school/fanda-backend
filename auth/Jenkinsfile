@@ -156,7 +156,7 @@ pipeline {
                         sh '''
                             git config --global user.email "jenkins@company.com"
                             git config --global user.name "Jenkins CI"
-                            git fetch origin && git checkout dev && git reset --hard origin/dev
+                            git fetch origin && git checkout develop && git reset --hard origin/develop
                         '''
 
                         def currentTag = sh(
@@ -181,7 +181,7 @@ pipeline {
                             passwordVariable: 'GITHUB_TOKEN'
                         )]) {
                             sh '''
-                                git push https://${GITHUB_TOKEN}@github.com/T1F4-aws-cloud-school/fanda-backend.git HEAD:dev
+                                git push https://${GITHUB_TOKEN}@github.com/T1F4-aws-cloud-school/fanda-backend.git HEAD:develop
                                 echo "Git 푸시 성공"
                             '''
                         }

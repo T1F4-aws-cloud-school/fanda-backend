@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fanda-auth-deploy
-  namespace: fanda-auth
+  namespace: fanda-be-auth
   labels:
     app: fanda-auth
     version: v1
@@ -33,7 +33,7 @@ spec:
           imagePullPolicy: Always
 
           ports:
-            - containerPort: 8080
+            - containerPort: 8002
               name: http
               protocol: TCP
 
@@ -51,23 +51,23 @@ spec:
               value: "-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
 
             # 데이터베이스 연결 정보
-            - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://mysql-0.fanda-db-ms.svc.cluster.local:3306/auth_db?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8"
+            - name: DB_HOST
+              value: "mysql-0.fanda-db-ms.svc.cluster.local"
 
-            - name: SPRING_DATASOURCE_USERNAME
+            - name: DB_USERNAME
               value: "fandauser"
 
-            - name: SPRING_DATASOURCE_PASSWORD
+            - name: DB_PASSWORD
               value: "fandapass"
 
             # Redis 연결 정보
-            - name: SPRING_REDIS_HOST
+            - name: REDIS_HOST
               value: "redis-master-0.fanda-redis.svc.cluster.local"
 
-            - name: SPRING_REDIS_PORT
+            - name: REDIS_PORT
               value: "6379"
 
-            - name: SPRING_REDIS_PASSWORD
+            - name: REDIS_PASSWORD
               value: "fanda123!"
 
             # JWT 설정
@@ -89,8 +89,8 @@ spec:
           # 헬스 체크 설정
           livenessProbe:
             httpGet:
-              path: /actuator/health/liveness
-              port: 8080
+              path: /actuator/health
+              port: 8002
               scheme: HTTP
             initialDelaySeconds: 60
             periodSeconds: 10
@@ -99,8 +99,8 @@ spec:
 
           readinessProbe:
             httpGet:
-              path: /actuator/health/readiness
-              port: 8080
+              path: /actuator/health
+              port: 8002
               scheme: HTTP
             initialDelaySeconds: 30
             periodSeconds: 5
@@ -112,7 +112,7 @@ spec:
           startupProbe:
             httpGet:
               path: /actuator/health
-              port: 8080
+              port: 8002
               scheme: HTTP
             initialDelaySeconds: 30
             periodSeconds: 10

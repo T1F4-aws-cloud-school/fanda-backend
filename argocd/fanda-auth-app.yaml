@@ -14,7 +14,7 @@ spec:
     path: auth/k8s           # auth/k8s/ 디렉터리 매니페스트 사용
   destination:
     server: https://kubernetes.default.svc
-    namespace: fanda-be-auth    # 실제 네임스페이스로 수정
+    namespace: fanda-be-auth
   syncPolicy:
     automated:
       prune: true        # 불필요한 리소스 자동 삭제
