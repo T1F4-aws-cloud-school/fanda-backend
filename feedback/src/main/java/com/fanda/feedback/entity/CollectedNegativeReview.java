@@ -29,13 +29,13 @@ public class CollectedNegativeReview {
     @Column(nullable = false)
     private LocalDateTime collectedAt;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ImprovementPhase phase;
-
     @Column(nullable = false)
     private Long productId;
 
     @Column(nullable = false)
     private Integer rating;
+
+    // 리뷰 작성 시간
+    @Column(nullable = false)
+    private LocalDateTime reviewCreatedAt;
 }
