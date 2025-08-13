@@ -52,7 +52,7 @@ spec:
 
             # 데이터베이스 연결 정보 (공개)
             - name: DB_HOST
-              value: "mysql-0.fanda-db-ms.svc.cluster.local"
+              value: "mysql.fanda-db-ms.svc.cluster.local"
 
             # 🔐 데이터베이스 인증 정보 (Secret에서 참조) - fandauser 계정 사용
             - name: DB_USERNAME
