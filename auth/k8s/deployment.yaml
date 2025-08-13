@@ -29,7 +29,7 @@ spec:
       containers:
         - name: fanda-auth
           # Jenkins가 자동으로 업데이트하는 이미지 태그
-          image: 192.168.2.111/fanda-be/auth-service:5cca318e
+          image: 192.168.2.111/fanda-be/auth-service:1503cc85
           imagePullPolicy: Always
 
           ports:
@@ -50,29 +50,49 @@ spec:
             - name: JAVA_OPTS
               value: "-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
 
-            # 데이터베이스 연결 정보
+            # 데이터베이스 연결 정보 (공개)
             - name: DB_HOST
               value: "mysql-0.fanda-db-ms.svc.cluster.local"
 
+            # 🔐 데이터베이스 인증 정보 (Secret에서 참조) - fandauser 계정 사용
             - name: DB_USERNAME
-              value: "fandauser"
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-auth-secret
+                  key: DB_USER_USERNAME
 
             - name: DB_PASSWORD
-              value: "fandapass"
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-auth-secret
+                  key: DB_USER_PASSWORD
 
-            # Redis 연결 정보
+            # Redis 연결 정보 (공개)
             - name: REDIS_HOST
               value: "redis-master-0.fanda-redis.svc.cluster.local"
 
             - name: REDIS_PORT
               value: "6379"
 
-            - name: REDIS_PASSWORD
-              value: "fanda123!"
+            # 🔐 Redis 인증 정보 (Secret에서 참조)
+            - name: REDIS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-auth-secret
+                  key: REDIS_USERNAME
 
-            # JWT 설정
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-auth-secret
+                  key: REDIS_PASSWORD
+
+            # 🔐 JWT 설정 (Secret에서 참조)
             - name: JWT_SECRET
-              value: "fanda-jwt-secret-key-for-production-environment"
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-auth-secret
+                  key: JWT_SECRET
 
             # JPA 설정
             - name: JPA_DDL_AUTO
