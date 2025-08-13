@@ -8,6 +8,12 @@ spring:
       enabled: false
     gateway:
       routes:
+        - id: shop
+          uri: http://localhost:8006
+          predicates:
+            - Path=/shop/**
+          filters:
+            - StripPrefix=1
         - id: banner-reports
           uri: http://localhost:8004
           predicates:
