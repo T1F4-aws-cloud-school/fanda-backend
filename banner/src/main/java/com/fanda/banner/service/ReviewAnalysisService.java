@@ -32,15 +32,6 @@ public class ReviewAnalysisService {
     public ReportResponseDto generateAndUploadPdfReports(){
         // 오늘 수집된 리뷰
         List<CollectedReview> reviews = collectedReviewRepository.findAll();
-        System.out.println("전체 리뷰 수: " + reviews.size());
-
-        reviews.forEach(r -> {
-            System.out.printf("리뷰ID=%d, productId=%s, rating=%d\n",
-                    r.getReviewId(), r.getProductId(), r.getRating());
-        });
-
-//        String reviewText = reviews.stream().map(CollectedReview::getContent)
-//                .collect(Collectors.joining("\n- 리뷰: ", "\n", ""));
 
         // 긍정 리포트 용
         String positiveReviewText = reviews.stream().map(CollectedReview::getContent).collect(Collectors.joining("\n- 리뷰: ", "\n", ""));
