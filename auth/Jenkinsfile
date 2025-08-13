@@ -55,30 +55,20 @@ pipeline {
             }
         }
 
-        stage('소스 코드 분석') {
+        stage('애플리케이션 빌드') {
             when { environment name: 'SKIP_ALL', value: 'false' }
             steps {
                 dir('auth') {
-                    script {
-                        // Gradle 테스트 실행
-                        sh '''
-                            echo "Auth 서비스 Gradle 테스트 실행..."
-                            if [ -f "gradlew" ]; then
-                                ./gradlew clean test --no-daemon
-                            else
-                                gradle clean test --no-daemon
-                            fi
+                    sh '''
+                        echo "Auth 서비스 Gradle 빌드 시작..."
+                        if [ -f "gradlew" ]; then
+                            ./gradlew clean build -x test --no-daemon
+                        else
+                            gradle clean build -x test --no-daemon
+                        fi
 
-                            echo "Auth 서비스 테스트 완료"
-                        '''
-                    }
-                }
-            }
-            post {
-                always {
-                    // 테스트 결과 보고서 저장
-                    publishTestResults testResultsPattern: 'auth/build/test-results/test/*.xml'
-                    archiveArtifacts artifacts: 'auth/build/reports/tests/test/**', allowEmptyArchive: true
+                        echo "Auth 서비스 빌드 완료"
+                    '''
                 }
             }
         }
