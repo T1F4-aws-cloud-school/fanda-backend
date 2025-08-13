@@ -1,0 +1,168 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fanda-banner-deploy
+  namespace: fanda-be-marketing
+  labels:
+    app: fanda-banner
+    version: v1
+    component: backend
+    service: banner
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: fanda-banner
+  template:
+    metadata:
+      labels:
+        app: fanda-banner
+        version: v1
+        component: backend
+        service: banner
+    spec:
+      containers:
+        - name: fanda-banner
+          # Jenkins가 자동으로 업데이트하는 이미지 태그
+          image: 192.168.2.111/fanda-be/banner-service:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8004
+              name: http
+              protocol: TCP
+
+          env:
+            # Spring Boot 프로파일
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+
+            # 타임존 설정
+            - name: TZ
+              value: "Asia/Seoul"
+
+            # JVM 옵션
+            - name: JAVA_OPTS
+              value: "-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
+
+            # 데이터베이스 연결 정보 (공개)
+            - name: DB_HOST
+              value: "mysql.fanda-db-ms.svc.cluster.local"
+
+            # 데이터베이스 인증 정보 (Secret에서 참조) - root 계정
+            - name: DB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: DB_ROOT_USERNAME
+
+            - name: DB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: DB_ROOT_PASSWORD
+
+            # 데이터베이스 인증 정보 (Secret에서 참조) - fandauser 계정 사용
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: DB_USER_USERNAME
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: DB_USER_PASSWORD
+
+            # AWS 자격증명 (Secret에서 참조)
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: AWS_ACCESS_KEY_ID
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: AWS_SECRET_ACCESS_KEY
+
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: AWS_SESSION_TOKEN
+
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: AWS_REGION
+
+            # Kafka 설정 (Secret에서 참조)
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: KAFKA_BOOTSTRAP_SERVERS
+
+            # JPA 설정
+            - name: JPA_DDL_AUTO
+              value: "update"  # 처음 배포시 테이블 자동 생성
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+          # 헬스 체크 설정
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8004
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8004
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+
+          # 시작 프로브
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8004
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+
+      # 보안 컨텍스트
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
