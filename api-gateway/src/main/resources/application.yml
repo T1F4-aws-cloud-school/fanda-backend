@@ -8,6 +8,18 @@ spring:
       enabled: false
     gateway:
       routes:
+        - id: banner-reports
+          uri: http://localhost:8004
+          predicates:
+            - Path=/banner/api/v1/reports/**
+          filters:
+            - StripPrefix=1
+        - id: banner-others
+          uri: http://localhost:8004
+          predicates:
+            - Path=/banner/api/v1/**
+          filters:
+            - StripPrefix=1
         - id: auth
           uri: http://localhost:8002
           predicates:
