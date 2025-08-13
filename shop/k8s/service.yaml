@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fanda-shop-service
+  namespace: fanda-be-shop
+  labels:
+    app: fanda-shop
+    service: shop
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8003
+      targetPort: 8003
+      protocol: TCP
+      name: http
+  selector:
+    app: fanda-shop
