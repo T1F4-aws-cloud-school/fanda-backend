@@ -1,33 +1,30 @@
-# ===============================
-# 1️⃣ Build Stage - Gradle 빌드
-# ===============================
 FROM gradle:8.5-jdk17 AS builder
 
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# Gradle 캐시 최적화를 위해 build.gradle과 settings.gradle 먼저 복사 (프론트엔드 package.json 패턴과 동일)
+# Gradle 캐시 최적화를 위해 build.gradle과 settings.gradle 먼저 복사
 COPY build.gradle settings.gradle* ./
-COPY gradle/ gradle/ 2>/dev/null || true
 
-# 의존성 다운로드 (프론트엔드 npm ci와 동일한 역할)
+# gradle 디렉토리가 있으면 복사
+COPY gradle/ gradle/
+
+# 의존성 다운로드
 RUN gradle dependencies --no-daemon
 
 # 소스 코드 복사
 COPY src/ src/
 
-# 애플리케이션 빌드 (프론트엔드 npm run build와 동일)
+# 애플리케이션 빌드
 RUN gradle clean build -x test --no-daemon
 
-# ===============================
-# 2️⃣ Production Stage - JRE 실행
-# ===============================
+# 2️ Production Stage - JRE 실행
 FROM eclipse-temurin:17-jre-alpine
 
-# 환경 변수 설정 (프론트엔드 패턴 적용)
+# 환경 변수 설정
 ENV TZ=Asia/Seoul
 
-# 보안 패치 및 필수 패키지 설치 (프론트엔드와 동일한 Alpine 패턴)
+# 보안 패치 및 필수 패키지 설치
 RUN apk update && \
     apk upgrade && \
     apk add --no-cache \
@@ -35,7 +32,7 @@ RUN apk update && \
         tzdata && \
     rm -rf /var/cache/apk/* /tmp/*
 
-# 애플리케이션 사용자 생성 (보안 강화 - 프론트엔드와 동일한 패턴)
+# 애플리케이션 사용자 생성
 RUN addgroup -g 1000 appuser && \
     adduser -D -u 1000 -G appuser appuser
 
@@ -43,7 +40,7 @@ RUN addgroup -g 1000 appuser && \
 WORKDIR /app
 RUN chown appuser:appuser /app
 
-# 빌드된 JAR 파일 복사 (프론트엔드의 build 결과물 복사와 동일)
+# 빌드된 JAR 파일 복사
 COPY --from=builder /app/build/libs/*.jar app.jar
 RUN chown appuser:appuser app.jar
 
