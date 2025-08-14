@@ -87,17 +87,8 @@ spec:
                   key: REDIS_PASSWORD
 
             # Spring Boot 표준 Redis 환경변수 (강제 override)
-            - name: SPRING_DATA_REDIS_HOST
-              value: "redis-master.fanda-redis.svc.cluster.local"
-
-            - name: SPRING_DATA_REDIS_PORT
-              value: "6379"
-
-            - name: SPRING_DATA_REDIS_USERNAME
-              value: "default"
-
-            - name: SPRING_DATA_REDIS_PASSWORD
-              value: "fanda123!"
+            - name: SPRING_REDIS_URL
+              value: "redis://default:fanda123!@redis-master.fanda-redis.svc.cluster.local:6379"
 
             # JWT 설정 (Secret에서 참조)
             - name: JWT_SECRET
