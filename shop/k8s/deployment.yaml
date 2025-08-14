@@ -33,7 +33,7 @@ spec:
           imagePullPolicy: Always
 
           ports:
-            - containerPort: 8003
+            - containerPort: 8006
               name: http
               protocol: TCP
 
@@ -53,11 +53,11 @@ spec:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:mysql://mysql.fanda-db-ms.svc.cluster.local:3306/shop_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul"
 
-            # 데이터베이스 연결 정보 (공개)
+            # 데이터베이스 연결 정보
             - name: DB_HOST
               value: "mysql.fanda-db-ms.svc.cluster.local"
 
-            # 데이터베이스 인증 정보 (Secret에서 참조) - fandauser 계정 사용
+            # 데이터베이스 인증 정보 (Secret에서 참조) - ROOT 계정 사용
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -82,38 +82,7 @@ spec:
               memory: "1Gi"
               cpu: "500m"
 
-          # 헬스 체크 설정
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8003
-              scheme: HTTP
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-
-          readinessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8003
-              scheme: HTTP
-            initialDelaySeconds: 30
-            periodSeconds: 5
-            timeoutSeconds: 3
-            successThreshold: 1
-            failureThreshold: 3
-
-          # 시작 프로브
-          startupProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8003
-              scheme: HTTP
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 12
+          # 헬스체크 모두 제거 - Pod가 시작되면 바로 Ready 상태
 
       dnsPolicy: ClusterFirst
       restartPolicy: Always
