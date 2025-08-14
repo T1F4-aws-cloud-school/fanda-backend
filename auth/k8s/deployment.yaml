@@ -77,13 +77,7 @@ spec:
             - name: REDIS_PORT
               value: "6379"
 
-            # Redis 인증 정보 (Secret에서 참조)
-            - name: REDIS_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: fanda-auth-secret
-                  key: REDIS_USERNAME
-
+            # Redis 인증 정보 - USERNAME 제거, PASSWORD만 사용
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
