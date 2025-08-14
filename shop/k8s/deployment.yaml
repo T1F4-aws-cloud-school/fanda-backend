@@ -62,13 +62,13 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: fanda-shop-secret
-                  key: DB_USER_USERNAME
+                  key: DB_ROOT_USERNAME
 
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: fanda-shop-secret
-                  key: DB_USER_PASSWORD
+                  key: DB_ROOT_PASSWORD
 
             # JPA 설정
             - name: JPA_DDL_AUTO

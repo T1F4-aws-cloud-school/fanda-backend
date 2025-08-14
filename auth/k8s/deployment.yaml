@@ -53,31 +53,30 @@ spec:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:mysql://mysql.fanda-db-ms.svc.cluster.local:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul"
 
-            # 데이터베이스 연결 정보 (공개)
+            # 데이터베이스 연결 정보
             - name: DB_HOST
               value: "mysql.fanda-db-ms.svc.cluster.local"
 
-            # 🔐 데이터베이스 인증 정보 (Secret에서 참조) - fandauser 계정 사용
+            # 데이터베이스 인증 정보 (Secret에서 참조) - ROOT 계정 사용
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: fanda-auth-secret
-                  key: DB_USER_USERNAME
+                  key: DB_ROOT_USERNAME
 
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: fanda-auth-secret
-                  key: DB_USER_PASSWORD
-
-            # Redis 연결 정보 (공개)
+                  key: DB_ROOT_PASSWORD
+            # Redis 연결 정보
             - name: REDIS_HOST
               value: "redis-master-0.fanda-redis.svc.cluster.local"
 
             - name: REDIS_PORT
               value: "6379"
 
-            # 🔐 Redis 인증 정보 (Secret에서 참조)
+            # Redis 인증 정보 (Secret에서 참조)
             - name: REDIS_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -90,7 +89,7 @@ spec:
                   name: fanda-auth-secret
                   key: REDIS_PASSWORD
 
-            # 🔐 JWT 설정 (Secret에서 참조)
+            # JWT 설정 (Secret에서 참조)
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
