@@ -3,15 +3,13 @@ kind: Service
 metadata:
   name: fanda-shop-service
   namespace: fanda-be-shop
-  labels:
-    app: fanda-shop
-    service: shop
 spec:
-  type: ClusterIP
+  type: LoadBalancer
+  loadBalancerIP: 192.168.0.100
   ports:
-    - port: 8006
+    - name: http
+      port: 8006
       targetPort: 8006
       protocol: TCP
-      name: http
   selector:
     app: fanda-shop
