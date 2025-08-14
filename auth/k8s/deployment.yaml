@@ -29,7 +29,7 @@ spec:
       containers:
         - name: fanda-auth
           # Jenkins가 자동으로 업데이트하는 이미지 태그
-          image: 192.168.2.111/fanda-be/auth-service:3bf57507
+          image: 192.168.2.111/fanda-be/auth-service:7003339c
           imagePullPolicy: Always
 
           ports:
