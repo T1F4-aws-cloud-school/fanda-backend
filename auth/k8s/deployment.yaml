@@ -72,7 +72,7 @@ spec:
 
             # Redis 연결 정보
             - name: REDIS_HOST
-              value: "redis-master-0.fanda-redis.svc.cluster.local"
+              value: "redis-master.fanda-redis.svc.cluster.local"
 
             - name: REDIS_PORT
               value: "6379"
