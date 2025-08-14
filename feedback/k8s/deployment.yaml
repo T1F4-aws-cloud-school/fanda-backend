@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fanda-feedback-deploy
-  namespace: fanda-be-feedback
+  name: fanda-be-marketing-feedback-deploy
+  namespace: fanda-be-marketing
   labels:
     app: fanda-feedback
     version: v1
@@ -28,12 +28,12 @@ spec:
     spec:
       containers:
         - name: fanda-feedback
-          # Jenkins가 자동으로 업데이트하는 이미지 태그
-          image: 192.168.2.111/fanda-be/feedback-service:placeholder
+          # Jenkins가 자동으로 업데이트하는 이미지 태그 (초기값 설정)
+          image: 192.168.2.111/fanda-be/feedback-service:latest
           imagePullPolicy: Always
 
           ports:
-            - containerPort: 8005
+            - containerPort: 8003
               name: http
               protocol: TCP
 
@@ -53,11 +53,11 @@ spec:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:mysql://mysql.fanda-db-ms.svc.cluster.local:3306/feedback_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul"
 
-            # 데이터베이스 연결 정보 (공개)
+            # 데이터베이스 연결 정보
             - name: DB_HOST
               value: "mysql.fanda-db-ms.svc.cluster.local"
 
-            # 데이터베이스 인증 정보 (Secret에서 참조) - fandauser 계정 사용
+            # 데이터베이스 인증 정보 (Secret에서 참조) - ROOT 계정 사용
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -89,38 +89,7 @@ spec:
               memory: "1Gi"
               cpu: "500m"
 
-          # 헬스 체크 설정
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8005
-              scheme: HTTP
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-
-          readinessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8005
-              scheme: HTTP
-            initialDelaySeconds: 30
-            periodSeconds: 5
-            timeoutSeconds: 3
-            successThreshold: 1
-            failureThreshold: 3
-
-          # 시작 프로브
-          startupProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8005
-              scheme: HTTP
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 12
+          # 헬스체크 모두 제거 - Pod가 시작되면 바로 Ready 상태
 
       dnsPolicy: ClusterFirst
       restartPolicy: Always
