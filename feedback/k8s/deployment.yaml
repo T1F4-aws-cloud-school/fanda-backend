@@ -62,13 +62,13 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: fanda-feedback-secret
-                  key: DB_USER_USERNAME
+                  key: DB_ROOT_USERNAME
 
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: fanda-feedback-secret
-                  key: DB_USER_PASSWORD
+                  key: DB_ROOT_PASSWORD
 
             # Kafka 설정 (Secret에서 참조)
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
