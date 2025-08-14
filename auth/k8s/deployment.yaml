@@ -70,7 +70,7 @@ spec:
                   name: fanda-auth-secret
                   key: DB_ROOT_PASSWORD
 
-            # Redis 연결 정보 - username 추가
+            # Redis 연결 정보 - 기존 방식
             - name: REDIS_HOST
               value: "redis-master.fanda-redis.svc.cluster.local"
 
@@ -85,6 +85,19 @@ spec:
                 secretKeyRef:
                   name: fanda-auth-secret
                   key: REDIS_PASSWORD
+
+            # Spring Boot 표준 Redis 환경변수 (강제 override)
+            - name: SPRING_DATA_REDIS_HOST
+              value: "redis-master.fanda-redis.svc.cluster.local"
+
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+
+            - name: SPRING_DATA_REDIS_USERNAME
+              value: "default"
+
+            - name: SPRING_DATA_REDIS_PASSWORD
+              value: "fanda123!"
 
             # JWT 설정 (Secret에서 참조)
             - name: JWT_SECRET
