@@ -29,7 +29,7 @@ spec:
       containers:
         - name: fanda-feedback
           # Jenkins가 자동으로 업데이트하는 이미지 태그 (초기값 설정)
-          image: 192.168.2.111/fanda-be/feedback-service:latest
+          image: 192.168.2.111/fanda-be/feedback-service:aa3be5fc
           imagePullPolicy: Always
 
           ports:
