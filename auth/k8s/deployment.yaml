@@ -70,20 +70,13 @@ spec:
                   name: fanda-auth-secret
                   key: DB_ROOT_PASSWORD
 
-            # Redis 연결 정보 - Spring Boot 표준 환경변수 사용
-            - name: SPRING_REDIS_HOST
+            # Redis 연결 정보 - USERNAME 제거, PASSWORD만 사용
+            - name: REDIS_HOST
               value: "redis-master.fanda-redis.svc.cluster.local"
-
-            - name: SPRING_REDIS_PORT
+            - name: REDIS_PORT
               value: "6379"
-
-            - name: SPRING_REDIS_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: fanda-auth-secret
-                  key: REDIS_USERNAME
-
-            - name: SPRING_REDIS_PASSWORD
+            # REDIS_USERNAME 제거 - Redis 6.x에서 username 없이 password만 사용
+            - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: fanda-auth-secret
