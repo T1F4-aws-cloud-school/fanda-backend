@@ -1,38 +1,48 @@
 package com.fanda.auth.config;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class CorsConfig implements WebMvcConfigurer {
+@Configuration
+public class CorsConfig {
 
-    public static CorsConfigurationSource apiConfigurationSource(){
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        ArrayList<String> allowedOriginPatterns = new ArrayList<>();
-        allowedOriginPatterns.add("http://localhost:8001");
-        allowedOriginPatterns.add("http://localhost:8002");
-        allowedOriginPatterns.add("http://localhost:8003");
-        allowedOriginPatterns.add("http://localhost:8004");
-        allowedOriginPatterns.add("http://localhost:8005");
-        allowedOriginPatterns.add("http://localhost:3000");
-        allowedOriginPatterns.add("http://192.168.2.100:31199");
-        allowedOriginPatterns.add("http://192.168.2.247");
+        // 허용할 오리진 설정
+        List<String> allowedOrigins = Arrays.asList(
+                "http://localhost:8001",
+                "http://localhost:8002",
+                "http://localhost:8003",
+                "http://localhost:8004",
+                "http://localhost:8005",
+                "http://localhost:3000",
+                "http://192.168.2.100:31199",
+                "http://192.168.2.247"
+        );
 
-        ArrayList<String> allowedHttpMethods = new ArrayList<>();
-        allowedHttpMethods.add("GET");
-        allowedHttpMethods.add("POST");
-        allowedHttpMethods.add("OPTIONS"); // CORS preflight용 필수
+        configuration.setAllowedOrigins(allowedOrigins);
 
-        configuration.setAllowedOrigins(allowedOriginPatterns);
-        configuration.setAllowedMethods(allowedHttpMethods);
+        // 허용할 HTTP 메소드
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+        ));
 
+        // 허용할 헤더 - 이 부분이 중요합니다!
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+
+        // 인증 정보 포함 허용
+        configuration.setAllowCredentials(true);
+
+        // preflight 요청 캐시 시간
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
