@@ -101,8 +101,6 @@ spec:
               memory: "1Gi"
               cpu: "500m"
 
-          # 헬스체크 모두 제거 - Pod가 시작되면 바로 Ready 상태
-
       dnsPolicy: ClusterFirst
       restartPolicy: Always
 
