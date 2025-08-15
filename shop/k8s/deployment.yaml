@@ -29,7 +29,7 @@ spec:
       containers:
         - name: fanda-shop
           # Jenkins가 자동으로 업데이트하는 이미지 태그
-          image: 192.168.2.111/fanda-be/shop-service:aa3be5fc
+          image: 192.168.2.111/fanda-be/shop-service:45289414
           imagePullPolicy: Always
 
           ports:
