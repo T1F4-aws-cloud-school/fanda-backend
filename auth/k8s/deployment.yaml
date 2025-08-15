@@ -57,7 +57,7 @@ spec:
             - name: DB_HOST
               value: "mysql.fanda-db-ms.svc.cluster.local"
 
-            # 데이터베이스 인증 정보 (Secret에서 참조) - ROOT 계정 사용
+            # 데이터베이스 인증 정보
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -70,21 +70,31 @@ spec:
                   name: fanda-auth-secret
                   key: DB_ROOT_PASSWORD
 
-            # Redis 연결 정보 - 기존 방식
-            - name: REDIS_HOST
+            # Redis 연결 정보 - Spring Boot 표준 환경변수 사용
+            - name: SPRING_REDIS_HOST
               value: "redis-master.fanda-redis.svc.cluster.local"
 
-            - name: REDIS_PORT
+            - name: SPRING_REDIS_PORT
               value: "6379"
 
-            - name: REDIS_USERNAME
-              value: "default"
+            - name: SPRING_REDIS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-auth-secret
+                  key: REDIS_USERNAME
 
-            - name: REDIS_PASSWORD
+            - name: SPRING_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: fanda-auth-secret
                   key: REDIS_PASSWORD
+
+            # Redis 추가 설정
+            - name: SPRING_REDIS_TIMEOUT
+              value: "2000"
+
+            - name: SPRING_REDIS_DATABASE
+              value: "0"
 
             # JWT 설정 (Secret에서 참조)
             - name: JWT_SECRET
