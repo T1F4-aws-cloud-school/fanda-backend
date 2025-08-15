@@ -89,13 +89,6 @@ spec:
                   name: fanda-auth-secret
                   key: REDIS_PASSWORD
 
-            # Redis 추가 설정
-            - name: SPRING_REDIS_TIMEOUT
-              value: "2000"
-
-            - name: SPRING_REDIS_DATABASE
-              value: "0"
-
             # JWT 설정 (Secret에서 참조)
             - name: JWT_SECRET
               valueFrom:
