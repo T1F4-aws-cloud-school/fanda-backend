@@ -22,13 +22,17 @@ public class CorsConfig implements WebMvcConfigurer {
         allowedOriginPatterns.add("http://localhost:8004");
         allowedOriginPatterns.add("http://localhost:8005");
         allowedOriginPatterns.add("http://localhost:3000");
+        allowedOriginPatterns.add("http://192.168.2.100:31199");
+        allowedOriginPatterns.add("http://192.168.2.247");
 
         ArrayList<String> allowedHttpMethods = new ArrayList<>();
         allowedHttpMethods.add("GET");
         allowedHttpMethods.add("POST");
+        allowedHttpMethods.add("OPTIONS"); // CORS preflight용 필수
 
         configuration.setAllowedOrigins(allowedOriginPatterns);
         configuration.setAllowedMethods(allowedHttpMethods);
+
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
