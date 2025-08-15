@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -22,6 +21,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.stream.Stream;
@@ -43,6 +43,9 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final RedisUtil redisUtil;
 
+    // CORS 설정을 주입받습니다
+    private final CorsConfigurationSource corsConfigurationSource;
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception{
         return configuration.getAuthenticationManager();
@@ -55,8 +58,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // CorsConfig
-        http.cors(cors -> cors.configurationSource(CorsConfig.apiConfigurationSource()));
+        // CORS 설정 - Bean으로 등록된 corsConfigurationSource 사용
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource));
+
         // csrf disable
         http.csrf(AbstractHttpConfigurer::disable);
         // form 로그인 방식 disable
@@ -65,6 +69,7 @@ public class SecurityConfig {
         http.httpBasic(AbstractHttpConfigurer::disable);
         // session 사용 X, Stateless 서버
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
         // 경로별 인가 작업
         http.authorizeHttpRequests(authorizeRequests -> authorizeRequests
                 .requestMatchers("/user/**").authenticated()
@@ -72,6 +77,7 @@ public class SecurityConfig {
                 .requestMatchers(allowedUrls).permitAll()
                 .anyRequest().permitAll()
         );
+
         // Jwt Filter (with login)
         CustomLoginFilter loginFilter = new CustomLoginFilter(
                 authenticationManager(authenticationConfiguration), jwtUtil
