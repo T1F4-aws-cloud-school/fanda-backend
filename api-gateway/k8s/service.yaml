@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fanda-gateway-service
+  namespace: fanda-gateway
+  labels:
+    app: fanda-gateway
+    service: api-gateway
+spec:
+  type: NodePort
+  ports:
+    - port: 8001
+      targetPort: 8001
+      nodePort: 30801  # API Gateway용 NodePort
+      protocol: TCP
+      name: http
+  selector:
+    app: fanda-gateway
