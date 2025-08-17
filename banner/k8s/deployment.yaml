@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: fanda-banner
-          # Jenkins가 자동으로 업데이트하는 이미지 태그
+          # Jenkins가 자동으로 업데이트하는 이미지 태그 (commit hash 사용)
           image: 192.168.2.111/fanda-be/banner-service:latest
           imagePullPolicy: Always
 
@@ -50,11 +50,14 @@ spec:
             - name: JAVA_OPTS
               value: "-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
 
-            # 데이터베이스 연결 정보 (공개)
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://mysql.fanda-db-ms.svc.cluster.local:3306/banner_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul"
+
+            # 데이터베이스 연결 정보
             - name: DB_HOST
               value: "mysql.fanda-db-ms.svc.cluster.local"
 
-            # 데이터베이스 인증 정보 (Secret에서 참조) - root 계정
+            # 데이터베이스 인증 정보
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -67,7 +70,7 @@ spec:
                   name: fanda-banner-secret
                   key: DB_ROOT_PASSWORD
 
-            # AWS 자격증명 (Secret에서 참조)
+            # AWS 자격증명
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -92,7 +95,7 @@ spec:
                   name: fanda-banner-secret
                   key: AWS_REGION
 
-            # Kafka 설정 (Secret에서 참조)
+            # Kafka 설정
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
               valueFrom:
                 secretKeyRef:
@@ -101,7 +104,7 @@ spec:
 
             # JPA 설정
             - name: JPA_DDL_AUTO
-              value: "update"  # 처음 배포시 테이블 자동 생성
+              value: "update"
 
           resources:
             requests:
@@ -110,42 +113,6 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "500m"
-
-          # 헬스 체크 설정
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8004
-              scheme: HTTP
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-
-          readinessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8004
-              scheme: HTTP
-            initialDelaySeconds: 30
-            periodSeconds: 5
-            timeoutSeconds: 3
-            successThreshold: 1
-            failureThreshold: 3
-
-          # 시작 프로브
-          startupProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8004
-              scheme: HTTP
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 12
-
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
 
       # 보안 컨텍스트
       securityContext:
