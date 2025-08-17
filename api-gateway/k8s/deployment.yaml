@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fanda-gateway-deploy
+  namespace: fanda-gateway
+  labels:
+    app: fanda-gateway
+    version: v1
+    component: gateway
+    service: api-gateway
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: fanda-gateway
+  template:
+    metadata:
+      labels:
+        app: fanda-gateway
+        version: v1
+        component: gateway
+        service: api-gateway
+    spec:
+      containers:
+        - name: fanda-gateway
+          # Jenkins가 자동으로 업데이트하는 이미지 태그
+          image: 192.168.2.111/fanda-be/api-gateway:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8001
+              name: http
+              protocol: TCP
+
+          env:
+            # Spring Boot 프로파일
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+
+            # 타임존 설정
+            - name: TZ
+              value: "Asia/Seoul"
+
+            # JVM 옵션
+            - name: JAVA_OPTS
+              value: "-Xms256m -Xmx512m -Djava.security.egd=file:/dev/./urandom"
+
+            # JWT 설정 (Secret에서 참조)
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-gateway-secret
+                  key: JWT_SECRET
+
+            # 실제 배포된 서비스들의 정확한 URL
+            - name: AUTH_SERVICE_URL
+              value: "http://fanda-auth-service.fanda-be-auth.svc.cluster.local:8002"
+
+            - name: SHOP_SERVICE_URL
+              value: "http://fanda-shop-service.fanda-be-shop.svc.cluster.local:8006"
+
+            - name: FEEDBACK_SERVICE_URL
+              value: "http://fanda-feedback-service.fanda-be-marketing.svc.cluster.local:8003"
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+
+
+
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+
+      # 보안 컨텍스트
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
