@@ -47,10 +47,6 @@ RUN chown appuser:appuser app.jar
 # 사용자 변경
 USER appuser
 
-# 헬스체크 추가
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8004/actuator/health || exit 1
-
 # 포트 노출
 EXPOSE 8004
 
