@@ -57,7 +57,7 @@ spec:
                   name: fanda-gateway-secret
                   key: JWT_SECRET
 
-            # 실제 배포된 서비스들의 정확한 URL
+            # 서비스 URL들
             - name: AUTH_SERVICE_URL
               value: "http://fanda-auth-service.fanda-be-auth.svc.cluster.local:8002"
 
@@ -74,8 +74,6 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "300m"
-
-
 
       dnsPolicy: ClusterFirst
       restartPolicy: Always
