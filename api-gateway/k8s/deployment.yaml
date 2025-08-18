@@ -67,6 +67,9 @@ spec:
             - name: FEEDBACK_SERVICE_URL
               value: "http://fanda-feedback-service.fanda-be-marketing.svc.cluster.local:8003"
 
+            - name: BANNER_SERVICE_URL
+              value: "http://fanda-banner-service.fanda-be-marketing.svc.cluster.local:8004"
+
           resources:
             requests:
               memory: "256Mi"
