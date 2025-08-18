@@ -4,6 +4,7 @@ kind: Service
 metadata:
   name: fanda-banner-service
   namespace: fanda-be-marketing
+#  namespace: default
   labels:
     app: fanda-banner
     service: banner
