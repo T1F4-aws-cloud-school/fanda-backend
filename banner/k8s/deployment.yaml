@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: fanda-banner-deploy
   namespace: fanda-be-marketing
+#  namespace: default
   labels:
     app: fanda-banner
     version: v1
@@ -26,6 +27,7 @@ spec:
         component: backend
         service: banner
     spec:
+      serviceAccountName: k8s-aws-sa # OIDC SA 연결
       containers:
         - name: fanda-banner
           # Jenkins가 자동으로 업데이트하는 이미지 태그 (commit hash 사용)
@@ -70,30 +72,39 @@ spec:
                   name: fanda-banner-secret
                   key: DB_ROOT_PASSWORD
 
+            # 추가
+            # OIDC 자격증명
+            - name: AWS_ROLE_ARN
+              value: arn:aws:iam::746491138596:role/banner-oidc-role-fanda
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: /var/run/secrets/aws/token
+            - name: AWS_DEFAULT_REGION
+              value: us-east-1
+
             # AWS 자격증명
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: fanda-banner-secret
-                  key: AWS_ACCESS_KEY_ID
-
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: fanda-banner-secret
-                  key: AWS_SECRET_ACCESS_KEY
-
-            - name: AWS_SESSION_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: fanda-banner-secret
-                  key: AWS_SESSION_TOKEN
-
-            - name: AWS_REGION
-              valueFrom:
-                secretKeyRef:
-                  name: fanda-banner-secret
-                  key: AWS_REGION
+#            - name: AWS_ACCESS_KEY_ID
+#              valueFrom:
+#                secretKeyRef:
+#                  name: fanda-banner-secret
+#                  key: AWS_ACCESS_KEY_ID
+#
+#            - name: AWS_SECRET_ACCESS_KEY
+#              valueFrom:
+#                secretKeyRef:
+#                  name: fanda-banner-secret
+#                  key: AWS_SECRET_ACCESS_KEY
+#
+#            - name: AWS_SESSION_TOKEN
+#              valueFrom:
+#                secretKeyRef:
+#                  name: fanda-banner-secret
+#                  key: AWS_SESSION_TOKEN
+#
+#            - name: AWS_REGION
+#              valueFrom:
+#                secretKeyRef:
+#                  name: fanda-banner-secret
+#                  key: AWS_REGION
 
             # Kafka 설정
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
@@ -113,6 +124,20 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "500m"
+
+          volumeMounts:
+            - name: aws-token
+              mountPath: /var/run/secrets/aws
+              readOnly: true
+
+      volumes:
+        - name: aws-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: sts.amazonaws.com
+                  expirationSeconds: 3600
+                  path: token
 
       # 보안 컨텍스트
       securityContext:
