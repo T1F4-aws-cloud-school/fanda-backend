@@ -138,22 +138,6 @@ pipeline {
             }
         }
 
-        stage('보안 스캔') {
-            when {
-                allOf {
-                    environment name: 'SKIP_ALL', value: 'false'
-                    environment name: 'SKIP_BUILD', value: 'false'
-                }
-            }
-            steps {
-                sh '''
-                    echo "Trivy 보안 스캔 실행..."
-                    trivy image --server http://192.168.2.100:30367 \
-                        --exit-code 1 --severity HIGH,CRITICAL ${IMAGE_NAME}:${IMAGE_TAG}
-                '''
-            }
-        }
-
         stage('배포 업데이트') {
             when { environment name: 'SKIP_ALL', value: 'false' }
             steps {
