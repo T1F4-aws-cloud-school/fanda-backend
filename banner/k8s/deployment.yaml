@@ -72,6 +72,12 @@ spec:
                   name: fanda-banner-secret
                   key: DB_ROOT_PASSWORD
 
+            - name: AWS_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: AWS_S3_BUCKET
+
             # 추가
             # OIDC 자격증명
             - name: AWS_ROLE_ARN
