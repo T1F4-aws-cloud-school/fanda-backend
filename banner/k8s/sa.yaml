@@ -3,3 +3,5 @@ kind: ServiceAccount
 metadata:
   name: k8s-aws-sa
   namespace: fanda-be-marketing
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::746491138596:role/banner-oidc-role-fanda

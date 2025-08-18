@@ -30,16 +30,19 @@ spring:
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 # AWS 설정
-cloud:
-  aws:
-    credentials:
-      access-key: ${AWS_ACCESS_KEY_ID}
-      secret-key: ${AWS_SECRET_ACCESS_KEY}
-      session-token: ${AWS_SESSION_TOKEN}
-    region:
-      static: ${AWS_REGION}
-    stack:
-      auto: false
+#cloud:
+#  aws:
+#    credentials:
+#      access-key: ${AWS_ACCESS_KEY_ID}
+#      secret-key: ${AWS_SECRET_ACCESS_KEY}
+#      session-token: ${AWS_SESSION_TOKEN}
+#    region:
+#      static: ${AWS_REGION}
+#    stack:
+#      auto: false
 
 server:
   port: 8004
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET}

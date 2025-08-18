@@ -2,11 +2,13 @@ package com.fanda.banner.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import java.awt.*;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 
@@ -23,7 +25,8 @@ public class S3Uploader {
         PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
-                .contentType("application/pdf")
+//                .contentType("application/pdf")
+                .contentType(MediaType.APPLICATION_PDF_VALUE)
                 .build();
 
         s3Client.putObject(request, RequestBody.fromFile(file));
@@ -35,7 +38,8 @@ public class S3Uploader {
         PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
-                .contentType("image/png")
+//                .contentType("image/png")
+                .contentType(MediaType.IMAGE_PNG_VALUE)
                 .build();
 
         s3Client.putObject(request, RequestBody.fromInputStream(inputStream, imageBytes.length));
