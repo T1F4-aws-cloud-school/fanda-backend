@@ -15,7 +15,7 @@ public class S3Config {
         String region = System.getenv("AWS_DEFAULT_REGION");
         return S3Client.builder()
                 .credentialsProvider(DefaultCredentialsProvider.create())
-                .region(Region.of(region != null ? region : "us-east-2"))
+                .region(Region.of(region != null ? region : "us-east-1"))
                 .build();
 //        return S3Client.builder()
 //                .region(Region.US_EAST_1)
