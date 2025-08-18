@@ -7,11 +7,10 @@ metadata:
     app: fanda-feedback
     service: feedback
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 8003
       targetPort: 8003
-      nodePort: 31803
       protocol: TCP
       name: http
   selector:
