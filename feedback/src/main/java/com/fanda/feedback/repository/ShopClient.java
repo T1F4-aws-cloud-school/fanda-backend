@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.time.LocalDate;
 import java.util.List;
 
-@FeignClient(name = "shop", url = "http://localhost:8006")
+@FeignClient(name = "shop", url = "${SHOP_SERVICE_URL:http://localhost:8006}")
 public interface ShopClient {
 
     @GetMapping("/api/v1/reviews/by-product")
