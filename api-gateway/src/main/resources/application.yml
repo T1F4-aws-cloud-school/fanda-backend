@@ -8,42 +8,62 @@ spring:
       enabled: false
     gateway:
       routes:
-        - id: shop
-          uri: ${SHOP_SERVICE_URL:http://fanda-shop-service.fanda-be-shop.svc.cluster.local:8006}
-          predicates:
-            - Path=/shop/**
-          filters:
-            - StripPrefix=1
-        - id: banner-reports
-          uri: ${BANNER_SERVICE_URL:http://fanda-banner-service.fanda-be-marketing.svc.cluster.local:8004}
-          predicates:
-            - Path=/banner/api/v1/reports/**
-          filters:
-            - StripPrefix=1
-        - id: banner-others
-          uri: ${BANNER_SERVICE_URL:http://fanda-banner-service.fanda-be-marketing.svc.cluster.local:8004}
-          predicates:
-            - Path=/banner/api/v1/**
-          filters:
-            - StripPrefix=1
+        # Auth 서비스 (인증 불필요하므로 먼저)
         - id: auth
           uri: ${AUTH_SERVICE_URL:http://fanda-auth-service.fanda-be-auth.svc.cluster.local:8002}
           predicates:
             - Path=/auth/**
           filters:
             - StripPrefix=1
+
+        # Shop 서비스 (제품 조회는 인증 불필요)
+        - id: shop
+          uri: ${SHOP_SERVICE_URL:http://fanda-shop-service.fanda-be-shop.svc.cluster.local:8006}
+          predicates:
+            - Path=/shop/**
+          filters:
+            - StripPrefix=1
+
+        # Banner 서비스 - Reports (구체적 경로 먼저)
+        - id: banner-reports
+          uri: ${BANNER_SERVICE_URL:http://fanda-banner-service.fanda-be-marketing.svc.cluster.local:8004}
+          predicates:
+            - Path=/banner/api/v1/reports/**
+          filters:
+            - StripPrefix=1
+
+        # Banner 서비스 - Reviews (구체적 경로)
+        - id: banner-reviews
+          uri: ${BANNER_SERVICE_URL:http://fanda-banner-service.fanda-be-marketing.svc.cluster.local:8004}
+          predicates:
+            - Path=/banner/api/v1/reviews/**
+          filters:
+            - StripPrefix=1
+
+        # Banner 서비스 - 기타 모든 경로
+        - id: banner-others
+          uri: ${BANNER_SERVICE_URL:http://fanda-banner-service.fanda-be-marketing.svc.cluster.local:8004}
+          predicates:
+            - Path=/banner/**
+          filters:
+            - StripPrefix=1
+
+        # Feedback 서비스 - Admin (구체적 경로 먼저)
         - id: feedback-admin
           uri: ${FEEDBACK_SERVICE_URL:http://fanda-feedback-service.fanda-be-marketing.svc.cluster.local:8003}
           predicates:
             - Path=/feedback/api/v1/admin/**
           filters:
             - StripPrefix=1
+
+        # Feedback 서비스 - 기타
         - id: feedback-others
           uri: ${FEEDBACK_SERVICE_URL:http://fanda-feedback-service.fanda-be-marketing.svc.cluster.local:8003}
           predicates:
-            - Path=/feedback/api/v1/**
+            - Path=/feedback/**
           filters:
             - StripPrefix=1
+
 jwt:
   secret: ${JWT_SECRET}
 
