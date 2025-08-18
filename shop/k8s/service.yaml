@@ -4,12 +4,11 @@ metadata:
   name: fanda-shop-service
   namespace: fanda-be-shop
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - name: http
       port: 8006
       targetPort: 8006
-      nodePort: 30806
       protocol: TCP
   selector:
     app: fanda-shop
