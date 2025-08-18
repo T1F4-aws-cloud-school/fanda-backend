@@ -9,11 +9,10 @@ metadata:
     app: fanda-banner
     service: banner
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 8004
       targetPort: 8004
-      nodePort: 30804  # Banner Service용 NodePort
       protocol: TCP
       name: http
   selector:
