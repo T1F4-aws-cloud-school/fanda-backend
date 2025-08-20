@@ -1,10 +1,10 @@
-package com.fanda.user_behavior;
+package com.fanda.recommend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class UserBehaviorApplicationTests {
+class RecommendApplicationTests {
 
 	@Test
 	void contextLoads() {
