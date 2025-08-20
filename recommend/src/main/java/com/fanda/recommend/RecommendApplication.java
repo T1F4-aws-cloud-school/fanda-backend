@@ -1,13 +1,13 @@
-package com.fanda.user_behavior;
+package com.fanda.recommend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class UserBehaviorApplication {
+public class RecommendApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(UserBehaviorApplication.class, args);
+		SpringApplication.run(RecommendApplication.class, args);
 	}
 
 }
