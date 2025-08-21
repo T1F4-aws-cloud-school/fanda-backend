@@ -190,7 +190,7 @@ pipeline {
                             '''
                         }
 
-                        echo "배포 업데이트 완료 - ArgoCD가 배포를 진행합니다"
+                        echo "shop 배포 업데이트 완료 - ArgoCD가 배포를 진행합니다"
 
                     } catch (Exception e) {
                         echo "배포 업데이트 실패: ${e.message}"
@@ -217,7 +217,7 @@ pipeline {
             echo env.SKIP_ALL == 'true' ? "자동 스킵 완료" :
                  env.SKIP_BUILD == 'true' ? "이미지 재사용 성공" : "Shop 서비스 CI/CD 성공"
         }
-        unstable { echo "빌드 성공, Git 업데이트 실패" }
+        unstable { echo "shop 빌드 성공, Git 업데이트 실패" }
         failure { echo "Shop 서비스 빌드 실패" }
         cleanup { sh 'docker container prune -f || true' }
     }
