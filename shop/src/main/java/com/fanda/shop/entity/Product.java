@@ -21,6 +21,8 @@ public class Product {
     private Integer price;
     private Integer averageRating;
 
+    private String imageUrl;
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews = new ArrayList<>();
 }
