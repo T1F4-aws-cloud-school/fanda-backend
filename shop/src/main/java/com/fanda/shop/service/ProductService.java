@@ -53,6 +53,7 @@ public class ProductService {
                 product.getDescription(),
                 product.getPrice(),
                 product.getAverageRating(),
+                product.getImageUrl(),
                 reviewResponseDtoList
         );
     }

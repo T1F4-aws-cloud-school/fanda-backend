@@ -8,6 +8,7 @@ public record ProductDetailResponseDto(
         String description,
         Integer price,
         Integer averageRating,
+        String imageUrl,
         List<ReviewResponseDto> reviews
 ) {
 }
