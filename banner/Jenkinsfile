@@ -18,38 +18,36 @@ pipeline {
 
     stages {
         stage('트리거 검증') {
-            steps {
-                script {
-                    def author = sh(script: "git log -1 --pretty=%an", returnStdout: true).trim()
-                    def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+                steps {
+                    script {
+                        def author = sh(script: "git log -1 --pretty=%an", returnStdout: true).trim()
+                        def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
 
-                    echo "=== 커밋 정보 ==="
-                    echo "작성자: ${author}"
-                    echo "메시지: ${commitMessage}"
+                        // 1. 먼저 Jenkins CI 커밋 스킵 (무한 루프 방지)
+                        if (author == "Jenkins CI" || commitMessage.contains('[skip ci]')) {
+                            echo "Jenkins CI 커밋 감지 - 파이프라인 스킵"
+                            env.SKIP_ALL = 'true'
+                            currentBuild.result = 'SUCCESS'
+                            return
+                        }
 
-                    // Jenkins CI가 작성한 커밋이면서 [skip ci]가 포함된 경우에만 스킵
-                    if (author == "Jenkins CI" && commitMessage.contains('[skip ci]')) {
-                        echo "Jenkins CI 자동 커밋 감지 - 파이프라인 스킵"
-                        env.SKIP_ALL = 'true'
-                        currentBuild.result = 'SUCCESS'
-                        currentBuild.description = "자동 스킵"
-                        return
+                        // 2. 그 다음 경로 체크
+                        def changedFiles = sh(
+                            script: "git diff --name-only HEAD~1 HEAD",
+                            returnStdout: true
+                        ).trim()
+
+                        if (!changedFiles.contains('banner/')) {
+                            echo "banner 서비스 변경 없음 - 스킵"
+                            env.SKIP_ALL = 'true'
+                            currentBuild.result = 'SUCCESS'
+                            return
+                        }
+
+                        env.SKIP_ALL = 'false'
                     }
-
-                    // 개발자가 명시적으로 스킵을 요청한 경우
-                    if (author != "Jenkins CI" && commitMessage.contains('[skip ci]')) {
-                        echo "개발자 스킵 요청 - 파이프라인 스킵"
-                        env.SKIP_ALL = 'true'
-                        currentBuild.result = 'SUCCESS'
-                        currentBuild.description = "개발자 스킵 요청"
-                        return
-                    }
-
-                    env.SKIP_ALL = 'false'
-                    echo "빌드 진행: ${author}의 커밋"
                 }
             }
-        }
 
         stage('환경 검증') {
             when { environment name: 'SKIP_ALL', value: 'false' }

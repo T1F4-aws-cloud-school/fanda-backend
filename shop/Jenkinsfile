@@ -17,23 +17,37 @@ pipeline {
     }
 
     stages {
-        stage('트리거 검증') {
-            steps {
-                script {
-                    def author = sh(script: "git log -1 --pretty=%an", returnStdout: true).trim()
-                    def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+            stage('트리거 검증') {
+                steps {
+                    script {
+                        def author = sh(script: "git log -1 --pretty=%an", returnStdout: true).trim()
+                        def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
 
-                    if (author == "Jenkins CI" || commitMessage.contains('[skip ci]')) {
-                        echo "Jenkins CI 커밋 감지 - 파이프라인 스킵"
-                        env.SKIP_ALL = 'true'
-                        currentBuild.result = 'SUCCESS'
-                        currentBuild.description = "자동 스킵"
-                        return
+                        // 1. Jenkins CI 커밋 스킵
+                        if (author == "Jenkins CI" || commitMessage.contains('[skip ci]')) {
+                            echo "Jenkins CI 커밋 감지 - 파이프라인 스킵"
+                            env.SKIP_ALL = 'true'
+                            currentBuild.result = 'SUCCESS'
+                            return
+                        }
+
+                        // 2. 경로 체크
+                        def changedFiles = sh(
+                            script: "git diff --name-only HEAD~1 HEAD",
+                            returnStdout: true
+                        ).trim()
+
+                        if (!changedFiles.contains('shop/')) {
+                            echo "Shop 서비스 변경 없음 - 스킵"
+                            env.SKIP_ALL = 'true'
+                            currentBuild.result = 'SUCCESS'
+                            return
+                        }
+
+                        env.SKIP_ALL = 'false'
                     }
-                    env.SKIP_ALL = 'false'
                 }
             }
-        }
 
         stage('환경 검증') {
             when { environment name: 'SKIP_ALL', value: 'false' }
