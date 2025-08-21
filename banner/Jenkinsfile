@@ -18,36 +18,36 @@ pipeline {
 
     stages {
         stage('트리거 검증') {
-                steps {
-                    script {
-                        def author = sh(script: "git log -1 --pretty=%an", returnStdout: true).trim()
-                        def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+            steps {
+                script {
+                    def author = sh(script: "git log -1 --pretty=%an", returnStdout: true).trim()
+                    def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
 
-                        // 1. 먼저 Jenkins CI 커밋 스킵 (무한 루프 방지)
-                        if (author == "Jenkins CI" || commitMessage.contains('[skip ci]')) {
-                            echo "Jenkins CI 커밋 감지 - 파이프라인 스킵"
-                            env.SKIP_ALL = 'true'
-                            currentBuild.result = 'SUCCESS'
-                            return
-                        }
-
-                        // 2. 그 다음 경로 체크
-                        def changedFiles = sh(
-                            script: "git diff --name-only HEAD~1 HEAD",
-                            returnStdout: true
-                        ).trim()
-
-                        if (!changedFiles.contains('banner/')) {
-                            echo "banner 서비스 변경 없음 - 스킵"
-                            env.SKIP_ALL = 'true'
-                            currentBuild.result = 'SUCCESS'
-                            return
-                        }
-
-                        env.SKIP_ALL = 'false'
+                    // 1. 먼저 Jenkins CI 커밋 스킵 (무한 루프 방지)
+                    if (author == "Jenkins CI" || commitMessage.contains('[skip ci]')) {
+                        echo "Jenkins CI 커밋 감지 - 파이프라인 스킵"
+                        env.SKIP_ALL = 'true'
+                        currentBuild.result = 'SUCCESS'
+                        return
                     }
+
+                    // 2. 그 다음 경로 체크
+                    def changedFiles = sh(
+                        script: "git diff --name-only HEAD~1 HEAD",
+                        returnStdout: true
+                    ).trim()
+
+                    if (!changedFiles.contains('banner/')) {
+                        echo "banner 서비스 변경 없음 - 스킵"
+                        env.SKIP_ALL = 'true'
+                        currentBuild.result = 'SUCCESS'
+                        return
+                    }
+
+                    env.SKIP_ALL = 'false'
                 }
             }
+        }
 
         stage('환경 검증') {
             when { environment name: 'SKIP_ALL', value: 'false' }
@@ -135,7 +135,7 @@ pipeline {
             }
         }
 
-        // 🔥 AWS Secret 배포 스테이지 추가
+        // 🔥 Kubernetes Plugin 사용한 AWS Secret 배포 스테이지
         stage('AWS Secret 배포') {
             when { environment name: 'SKIP_ALL', value: 'false' }
             steps {
@@ -144,36 +144,48 @@ pipeline {
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_KEY'),
                     string(credentialsId: 'aws-session-token', variable: 'AWS_SESSION_TOKEN')
                 ]) {
-                    sh '''
-                        echo "🔐 AWS Secret 배포 시작..."
+                    // Kubernetes Plugin의 withKubeConfig 사용
+                    withKubeConfig([credentialsId: 'k8s-service-account-token']) {
+                        sh '''
+                            echo "🔐 AWS Secret 배포 시작..."
 
-                        # Kubernetes Secret 생성/업데이트 (기존 Secret이 있으면 삭제 후 재생성)
-                        kubectl delete secret fanda-banner-secret -n fanda-be-marketing --ignore-not-found=true
+                            # 네임스페이스 존재 확인 및 생성
+                            if ! kubectl get namespace fanda-be-marketing >/dev/null 2>&1; then
+                                echo "📦 네임스페이스 fanda-be-marketing 생성..."
+                                kubectl create namespace fanda-be-marketing
+                            fi
 
-                        kubectl create secret generic fanda-banner-secret \
-                          --from-literal=DB_ROOT_USERNAME="root" \
-                          --from-literal=DB_ROOT_PASSWORD="rootpass" \
-                          --from-literal=DB_USER_USERNAME="fandauser" \
-                          --from-literal=DB_USER_PASSWORD="fandapass" \
-                          --from-literal=AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY}" \
-                          --from-literal=AWS_SECRET_ACCESS_KEY="${AWS_SECRET_KEY}" \
-                          --from-literal=AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
-                          --from-literal=AWS_REGION="ap-northeast-2" \
-                          --from-literal=AWS_S3_BUCKET="fanda-bucket-aws9-3" \
-                          --from-literal=KAFKA_BOOTSTRAP_SERVERS="kafka.fanda-kafka.svc.cluster.local:9092" \
-                          --from-literal=JPA_DDL_AUTO="update" \
-                          -n fanda-be-marketing
+                            # 기존 Secret 삭제 (존재하는 경우)
+                            kubectl delete secret fanda-banner-secret -n fanda-be-marketing --ignore-not-found=true
 
-                        echo "✅ AWS Secret 배포 완료!"
+                            # 새 Secret 생성
+                            kubectl create secret generic fanda-banner-secret \
+                              --from-literal=DB_ROOT_USERNAME="root" \
+                              --from-literal=DB_ROOT_PASSWORD="rootpass" \
+                              --from-literal=DB_USER_USERNAME="fandauser" \
+                              --from-literal=DB_USER_PASSWORD="fandapass" \
+                              --from-literal=AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY}" \
+                              --from-literal=AWS_SECRET_ACCESS_KEY="${AWS_SECRET_KEY}" \
+                              --from-literal=AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
+                              --from-literal=AWS_REGION="ap-northeast-2" \
+                              --from-literal=AWS_S3_BUCKET="fanda-bucket-aws9-3" \
+                              --from-literal=KAFKA_BOOTSTRAP_SERVERS="kafka.fanda-kafka.svc.cluster.local:9092" \
+                              --from-literal=JPA_DDL_AUTO="update" \
+                              -n fanda-be-marketing
 
-                        # Secret 생성 확인
-                        if kubectl get secret fanda-banner-secret -n fanda-be-marketing > /dev/null 2>&1; then
-                            echo "✅ Secret 생성 확인됨"
-                        else
-                            echo "❌ Secret 생성 실패"
-                            exit 1
-                        fi
-                    '''
+                            echo "✅ AWS Secret 배포 완료!"
+
+                            # Secret 생성 확인
+                            if kubectl get secret fanda-banner-secret -n fanda-be-marketing > /dev/null 2>&1; then
+                                echo "✅ Secret 생성 확인됨"
+                                # Secret 내용 확인 (보안상 값은 표시하지 않음)
+                                kubectl describe secret fanda-banner-secret -n fanda-be-marketing
+                            else
+                                echo "❌ Secret 생성 실패"
+                                exit 1
+                            fi
+                        '''
+                    }
                 }
             }
         }
@@ -225,6 +237,32 @@ pipeline {
                 }
             }
         }
+
+        // 🔥 배포 상태 확인 스테이지 추가
+        stage('배포 상태 확인') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                withKubeConfig([credentialsId: 'k8s-service-account-token']) {
+                    sh '''
+                        echo "🔍 배포 상태 확인 중..."
+
+                        # Pod 상태 확인
+                        echo "📋 Pod 상태:"
+                        kubectl get pods -n fanda-be-marketing -l app=fanda-banner || echo "Pod 아직 생성되지 않음"
+
+                        # Service 상태 확인
+                        echo "🌐 Service 상태:"
+                        kubectl get svc -n fanda-be-marketing -l app=fanda-banner || echo "Service 아직 생성되지 않음"
+
+                        # Secret 상태 확인
+                        echo "🔐 Secret 상태:"
+                        kubectl get secret fanda-banner-secret -n fanda-be-marketing
+
+                        echo "✅ 배포 상태 확인 완료"
+                    '''
+                }
+            }
+        }
     }
 
     post {
@@ -243,8 +281,23 @@ pipeline {
             echo env.SKIP_ALL == 'true' ? "자동 스킵 완료" :
                  env.SKIP_BUILD == 'true' ? "이미지 재사용 성공" : "Banner 서비스 CI/CD 성공"
         }
-        unstable { echo "빌드 성공, Git 업데이트 실패" }
-        failure { echo "Banner 서비스 빌드 실패" }
-        cleanup { sh 'docker container prune -f || true' }
+        unstable {
+            echo "빌드 성공, Git 업데이트 실패"
+        }
+        failure {
+            echo "Banner 서비스 빌드 실패"
+            // 실패 시 디버그 정보 출력
+            withKubeConfig([credentialsId: 'k8s-service-account-token']) {
+                sh '''
+                    echo "=== 디버그 정보 ==="
+                    kubectl get pods -n fanda-be-marketing -l app=fanda-banner || true
+                    kubectl describe secret fanda-banner-secret -n fanda-be-marketing || true
+                    kubectl get events -n fanda-be-marketing --sort-by='.lastTimestamp' | tail -10 || true
+                '''
+            }
+        }
+        cleanup {
+            sh 'docker container prune -f || true'
+        }
     }
 }
