@@ -57,6 +57,7 @@ spec:
             - name: DB_HOST
               value: "mysql.fanda-db-ms.svc.cluster.local"
 
+
             # 데이터베이스 인증 정보 (Secret에서 참조) - ROOT 계정 사용
             - name: DB_USERNAME
               valueFrom:
@@ -69,6 +70,9 @@ spec:
                 secretKeyRef:
                   name: fanda-shop-secret
                   key: DB_ROOT_PASSWORD
+
+            - name: AUTH_SERVICE_URL
+              value: "http://fanda-auth-service.fanda-be-auth.svc.cluster.local:8002"
 
             # JPA 설정
             - name: JPA_DDL_AUTO
