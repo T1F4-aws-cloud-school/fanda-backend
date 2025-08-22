@@ -159,12 +159,6 @@ pipeline {
                         echo "Kubernetes 클러스터 연결 확인..."
                         kubectl get nodes
 
-                        # 네임스페이스 확인/생성
-                        if ! kubectl get namespace fanda-be-marketing &> /dev/null; then
-                            echo "네임스페이스 fanda-be-marketing 생성..."
-                            kubectl create namespace fanda-be-marketing
-                        fi
-
                         # 기존 Secret 삭제
                         kubectl delete secret fanda-banner-secret -n fanda-be-marketing --ignore-not-found=true
 
