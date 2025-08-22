@@ -23,7 +23,6 @@ pipeline {
                     def author = sh(script: "git log -1 --pretty=%an", returnStdout: true).trim()
                     def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
 
-                    // 1. 먼저 Jenkins CI 커밋 스킵 (무한 루프 방지)
                     if (author == "Jenkins CI" || commitMessage.contains('[skip ci]')) {
                         echo "Jenkins CI 커밋 감지 - 파이프라인 스킵"
                         env.SKIP_ALL = 'true'
@@ -31,7 +30,6 @@ pipeline {
                         return
                     }
 
-                    // 2. 그 다음 경로 체크
                     def changedFiles = sh(
                         script: "git diff --name-only HEAD~1 HEAD",
                         returnStdout: true
@@ -55,14 +53,11 @@ pipeline {
                 echo "Banner 서비스 빌드 시작: ${IMAGE_NAME}:${IMAGE_TAG}"
                 dir('banner') {
                     sh '''
-                        # 필수 파일 존재 확인
                         for file in build.gradle src/main/java Dockerfile; do
                             [ ! -e "$file" ] && echo "필수 파일/디렉토리 누락: $file" && exit 1
                         done
 
-                        # Gradle wrapper 실행 권한 확인
                         [ -f "gradlew" ] && chmod +x gradlew
-
                         echo "Banner 서비스 환경 검증 완료"
                     '''
                 }
@@ -80,7 +75,6 @@ pipeline {
                         else
                             gradle clean build -x test --no-daemon
                         fi
-
                         echo "Banner 서비스 빌드 완료"
                     '''
                 }
@@ -118,13 +112,11 @@ pipeline {
                         passwordVariable: 'HARBOR_PASS'
                     )]) {
                         sh '''
-                            # Docker 이미지 빌드 (latest 태그 제거)
                             docker build -t ${IMAGE_NAME}:${IMAGE_TAG} \
                                 --label "version=${IMAGE_TAG}" \
                                 --label "build-date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
                                 --label "service=banner" .
 
-                            # Harbor 로그인 및 이미지 푸시 (commit hash만)
                             echo "${HARBOR_PASS}" | docker login ${HARBOR_URL} -u "${HARBOR_USER}" --password-stdin
                             docker push ${IMAGE_NAME}:${IMAGE_TAG}
 
@@ -135,7 +127,6 @@ pipeline {
             }
         }
 
-        // ✅ kubeconfig credential 추가된 AWS Secret 배포 스테이지
         stage('AWS Secret 배포') {
             when { environment name: 'SKIP_ALL', value: 'false' }
             steps {
@@ -146,33 +137,36 @@ pipeline {
                     string(credentialsId: 'kubeconfig-base64', variable: 'KUBECONFIG_B64')
                 ]) {
                     sh '''
-                        echo "🔐 AWS Secret 배포 시작..."
+                        echo "AWS Secret 배포 시작..."
 
-                        # kubeconfig 디코딩 및 설정
+                        # kubeconfig 설정
                         echo $KUBECONFIG_B64 | base64 -d > /tmp/kubeconfig
                         export KUBECONFIG=/tmp/kubeconfig
                         chmod 600 /tmp/kubeconfig
+                        export PATH=$PATH:/usr/local/bin:/usr/bin
 
-                        # kubectl 명령어 사용 가능 여부 확인
+                        # kubectl 확인
                         if ! command -v kubectl &> /dev/null; then
-                            echo "❌ kubectl이 설치되지 않았습니다."
+                            echo "kubectl이 설치되지 않았습니다."
                             exit 1
                         fi
 
-                        # 클러스터 연결 상태 확인
-                        echo "🔗 Kubernetes 클러스터 연결 확인..."
+                        echo "kubectl 경로: $(which kubectl)"
+
+                        # 클러스터 연결 확인
+                        echo "Kubernetes 클러스터 연결 확인..."
                         kubectl get nodes
 
-                        # 네임스페이스 존재 확인 및 생성
+                        # 네임스페이스 확인/생성
                         if ! kubectl get namespace fanda-be-marketing &> /dev/null; then
-                            echo "📦 네임스페이스 fanda-be-marketing 생성..."
+                            echo "네임스페이스 fanda-be-marketing 생성..."
                             kubectl create namespace fanda-be-marketing
                         fi
 
-                        # 기존 Secret 삭제 (존재하는 경우)
+                        # 기존 Secret 삭제
                         kubectl delete secret fanda-banner-secret -n fanda-be-marketing --ignore-not-found=true
 
-                        # 새 Secret 생성
+                        # AWS Secret 생성
                         kubectl create secret generic fanda-banner-secret \
                           --from-literal=DB_ROOT_USERNAME="root" \
                           --from-literal=DB_ROOT_PASSWORD="rootpass" \
@@ -187,19 +181,17 @@ pipeline {
                           --from-literal=JPA_DDL_AUTO="update" \
                           -n fanda-be-marketing
 
-                        echo "✅ AWS Secret 배포 완료!"
+                        echo "AWS Secret 배포 완료!"
 
-                        # Secret 생성 확인
+                        # Secret 검증
                         if kubectl get secret fanda-banner-secret -n fanda-be-marketing > /dev/null 2>&1; then
-                            echo "✅ Secret 생성 확인됨"
-                            # Secret 내용 확인 (보안상 값은 표시하지 않음)
+                            echo "Secret 생성 확인됨"
                             kubectl describe secret fanda-banner-secret -n fanda-be-marketing
                         else
-                            echo "❌ Secret 생성 실패"
+                            echo "Secret 생성 실패"
                             exit 1
                         fi
 
-                        # 임시 kubeconfig 파일 정리
                         rm -f /tmp/kubeconfig
                     '''
                 }
@@ -254,34 +246,28 @@ pipeline {
             }
         }
 
-        // ✅ kubeconfig credential 추가된 배포 상태 확인 스테이지
         stage('배포 상태 확인') {
             when { environment name: 'SKIP_ALL', value: 'false' }
             steps {
                 withCredentials([string(credentialsId: 'kubeconfig-base64', variable: 'KUBECONFIG_B64')]) {
                     sh '''
-                        echo "🔍 배포 상태 확인 중..."
+                        echo "배포 상태 확인 중..."
 
-                        # kubeconfig 디코딩 및 설정
                         echo $KUBECONFIG_B64 | base64 -d > /tmp/kubeconfig
                         export KUBECONFIG=/tmp/kubeconfig
                         chmod 600 /tmp/kubeconfig
+                        export PATH=$PATH:/usr/local/bin:/usr/bin
 
-                        # Pod 상태 확인
-                        echo "📋 Pod 상태:"
+                        echo "Pod 상태:"
                         kubectl get pods -n fanda-be-marketing -l app=fanda-banner || echo "Pod 아직 생성되지 않음"
 
-                        # Service 상태 확인
-                        echo "🌐 Service 상태:"
+                        echo "Service 상태:"
                         kubectl get svc -n fanda-be-marketing -l app=fanda-banner || echo "Service 아직 생성되지 않음"
 
-                        # Secret 상태 확인
-                        echo "🔐 Secret 상태:"
+                        echo "Secret 상태:"
                         kubectl get secret fanda-banner-secret -n fanda-be-marketing
 
-                        echo "✅ 배포 상태 확인 완료"
-
-                        # 임시 kubeconfig 파일 정리
+                        echo "배포 상태 확인 완료"
                         rm -f /tmp/kubeconfig
                     '''
                 }
@@ -314,16 +300,15 @@ pipeline {
                 sh '''
                     echo "=== 디버그 정보 ==="
 
-                    # kubeconfig 디코딩 및 설정
                     echo $KUBECONFIG_B64 | base64 -d > /tmp/kubeconfig
                     export KUBECONFIG=/tmp/kubeconfig
                     chmod 600 /tmp/kubeconfig
+                    export PATH=$PATH:/usr/local/bin:/usr/bin
 
                     kubectl get pods -n fanda-be-marketing -l app=fanda-banner || true
                     kubectl describe secret fanda-banner-secret -n fanda-be-marketing || true
                     kubectl get events -n fanda-be-marketing --sort-by='.lastTimestamp' | tail -10 || true
 
-                    # 임시 kubeconfig 파일 정리
                     rm -f /tmp/kubeconfig
                 '''
             }
