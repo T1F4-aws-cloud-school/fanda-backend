@@ -1,0 +1,40 @@
+package com.fanda.feedback.config;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+
+@Component
+@RequiredArgsConstructor
+public class S3Uploader {
+
+    private final S3Client s3Client;
+
+    @Value("${aws.s3.bucket}")
+    private String bucketName;
+
+    public String uploadPdf(File file, String key){
+        PutObjectRequest request = PutObjectRequest.builder().bucket(bucketName).key(key)
+                .contentType(MediaType.APPLICATION_PDF_VALUE).build();
+        s3Client.putObject(request, RequestBody.fromFile(file));
+        return "https://" + bucketName + ".s3.amazonaws.com/" + key;
+    }
+
+    public String uploadBytes(byte[] bytes, String key, String contentType){
+        ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(contentType)
+                .build();
+        s3Client.putObject(request, RequestBody.fromInputStream(in, bytes.length));
+        return "https://" + bucketName + ".s3.amazonaws.com/" + key;
+    }
+}
