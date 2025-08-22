@@ -29,7 +29,7 @@ spec:
       containers:
         - name: fanda-banner
           # Jenkins가 자동으로 업데이트하는 이미지 태그 (commit hash 사용)
-          image: 192.168.2.111/fanda-be/banner-service:52385b7b
+          image: 192.168.2.111/fanda-be/banner-service:cd6f6e9c
           imagePullPolicy: Always
           ports:
             - containerPort: 8004
