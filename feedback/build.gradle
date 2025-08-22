@@ -43,6 +43,14 @@ dependencies {
     implementation 'commons-fileupload:commons-fileupload:1.6.0'
     implementation 'org.springframework.boot:spring-boot-starter-validation'  // 유효성 검사
     implementation 'org.springframework.boot:spring-boot-starter-actuator'   // 헬스체크용
+	implementation platform("software.amazon.awssdk:bom:2.25.4")
+	implementation 'software.amazon.awssdk:bedrockruntime'
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+	// pdf
+	implementation 'org.apache.pdfbox:pdfbox:2.0.30'
+	// aws sdk for s3
+	implementation platform('software.amazon.awssdk:bom:2.25.4')
+	implementation 'software.amazon.awssdk:s3'
 }
 
 dependencyManagement {
