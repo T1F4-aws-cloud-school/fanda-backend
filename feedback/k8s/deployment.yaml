@@ -82,6 +82,38 @@ spec:
                   name: fanda-feedback-secret
                   key: KAFKA_BOOTSTRAP_SERVERS
 
+            # AWS S3 버킷 설정
+            - name: AWS_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-feedback-secret
+                  key: AWS_S3_BUCKET
+
+            # AWS 자격증명 - Jenkins
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-feedback-secret
+                  key: AWS_ACCESS_KEY_ID
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-feedback-secret
+                  key: AWS_SECRET_ACCESS_KEY
+
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-feedback-secret
+                  key: AWS_SESSION_TOKEN
+
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-feedback-secret
+                  key: AWS_REGION
+
             # JPA 설정
             - name: JPA_DDL_AUTO
               value: "update"  # 처음 배포시 테이블 자동 생성
