@@ -171,7 +171,7 @@ pipeline {
                           --from-literal=AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY}" \
                           --from-literal=AWS_SECRET_ACCESS_KEY="${AWS_SECRET_KEY}" \
                           --from-literal=AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
-                          --from-literal=AWS_REGION="ap-northeast-2" \
+                          --from-literal=AWS_REGION="us-east-1" \
                           --from-literal=AWS_S3_BUCKET="fanda-bucket-aws9-3" \
                           --from-literal=KAFKA_BOOTSTRAP_SERVERS="kafka.fanda-kafka.svc.cluster.local:9092" \
                           --from-literal=JPA_DDL_AUTO="update" \
