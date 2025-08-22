@@ -26,7 +26,7 @@ public class ReviewAnalysisService {
     private final CollectedReviewRepository collectedReviewRepository;
     private final BedrockClient bedrockClient;
     private final S3Uploader s3Uploader;
-    private final ImageGenerationService imageGenerationService;
+    //private final ImageGenerationService imageGenerationService;
     private final ShopClient shopClient;
 
     public ReportResponseDto generateAndUploadPdfReports(){
@@ -58,27 +58,27 @@ public class ReviewAnalysisService {
         String negativeReport = bedrockClient.generate(negativePrompt);
 
         // 3. catchphrase, 상품명 추출
-        String catchPhraseKo = extractCatchPhrase(positiveReport);
-        String productName = extractProductName(positiveReport);
-
-        // 4-1. 영어로 번역
-        String catchPhraseEn = bedrockClient.generate("""
-            Translate the following Korean marketing phrase into fluent English for an online shopping banner:
-            """ + catchPhraseKo).replace("\n", "").trim();
-
-        // 4-2. 배너 이미지 생성용 프롬프트
-        //String bannerPrompt = PromptTemplate.getBannerImagePrompt(catchPhraseEn);
-        String bannerPrompt = String.format("""
-            Create a banner image (750x320 px) for a shopping app.
-        
-            - Product: %s
-            - Include the phrase: "%s" in bold, stylish white text centered on the image.
-            - Use a premium and minimal background that fits the product's characteristics.
-            - No logos, no borders, no icons.
-        """, productName, catchPhraseEn);
-
-        // 5. Stability로 이미지 생성
-        byte[] imageBytes = imageGenerationService.generateImageFromPrompt(bannerPrompt);
+//        String catchPhraseKo = extractCatchPhrase(positiveReport);
+//        String productName = extractProductName(positiveReport);
+//
+//        // 4-1. 영어로 번역
+//        String catchPhraseEn = bedrockClient.generate("""
+//            Translate the following Korean marketing phrase into fluent English for an online shopping banner:
+//            """ + catchPhraseKo).replace("\n", "").trim();
+//
+//        // 4-2. 배너 이미지 생성용 프롬프트
+//        //String bannerPrompt = PromptTemplate.getBannerImagePrompt(catchPhraseEn);
+//        String bannerPrompt = String.format("""
+//            Create a banner image (750x320 px) for a shopping app.
+//
+//            - Product: %s
+//            - Include the phrase: "%s" in bold, stylish white text centered on the image.
+//            - Use a premium and minimal background that fits the product's characteristics.
+//            - No logos, no borders, no icons.
+//        """, productName, catchPhraseEn);
+//
+//        // 5. Stability로 이미지 생성
+//        byte[] imageBytes = imageGenerationService.generateImageFromPrompt(bannerPrompt);
 
         // 6. timestamp
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
@@ -96,12 +96,14 @@ public class ReviewAnalysisService {
             PdfGenerator.saveTextAsPdf(positiveReport, positivePdf.getPath());
             PdfGenerator.saveTextAsPdf(negativeReport, negativePdf.getPath());
 
-            String imageUrl = s3Uploader.uploadImageBytes(imageBytes, imageKey);
+            //String imageUrl = s3Uploader.uploadImageBytes(imageBytes, imageKey);
 
             s3Uploader.uploadFile(positivePdf, positiveKey);
             s3Uploader.uploadFile(negativePdf, negativeKey);
 
-            return new ReportResponseDto(imageUrl, catchPhraseKo);
+            //return new ReportResponseDto(imageUrl, catchPhraseKo);
+            String catchPhraseKo = extractCatchPhrase(positiveReport);
+            return new ReportResponseDto(null, catchPhraseKo);
         }
         catch (Exception e){
             e.printStackTrace();
