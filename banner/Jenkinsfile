@@ -135,17 +135,23 @@ pipeline {
             }
         }
 
-        // 🔥 간단해진 AWS Secret 배포 스테이지 (kubectl 직접 사용)
+        // ✅ kubeconfig credential 추가된 AWS Secret 배포 스테이지
         stage('AWS Secret 배포') {
             when { environment name: 'SKIP_ALL', value: 'false' }
             steps {
                 withCredentials([
                     string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY'),
                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_KEY'),
-                    string(credentialsId: 'aws-session-token', variable: 'AWS_SESSION_TOKEN')
+                    string(credentialsId: 'aws-session-token', variable: 'AWS_SESSION_TOKEN'),
+                    string(credentialsId: 'kubeconfig-base64', variable: 'KUBECONFIG_B64')
                 ]) {
                     sh '''
                         echo "🔐 AWS Secret 배포 시작..."
+
+                        # kubeconfig 디코딩 및 설정
+                        echo $KUBECONFIG_B64 | base64 -d > /tmp/kubeconfig
+                        export KUBECONFIG=/tmp/kubeconfig
+                        chmod 600 /tmp/kubeconfig
 
                         # kubectl 명령어 사용 가능 여부 확인
                         if ! command -v kubectl &> /dev/null; then
@@ -154,10 +160,8 @@ pipeline {
                         fi
 
                         # 클러스터 연결 상태 확인
-                        if ! kubectl cluster-info &> /dev/null; then
-                            echo "❌ Kubernetes 클러스터에 연결할 수 없습니다."
-                            exit 1
-                        fi
+                        echo "🔗 Kubernetes 클러스터 연결 확인..."
+                        kubectl get nodes
 
                         # 네임스페이스 존재 확인 및 생성
                         if ! kubectl get namespace fanda-be-marketing &> /dev/null; then
@@ -194,6 +198,9 @@ pipeline {
                             echo "❌ Secret 생성 실패"
                             exit 1
                         fi
+
+                        # 임시 kubeconfig 파일 정리
+                        rm -f /tmp/kubeconfig
                     '''
                 }
             }
@@ -247,27 +254,37 @@ pipeline {
             }
         }
 
-        // 🔥 배포 상태 확인 스테이지
+        // ✅ kubeconfig credential 추가된 배포 상태 확인 스테이지
         stage('배포 상태 확인') {
             when { environment name: 'SKIP_ALL', value: 'false' }
             steps {
-                sh '''
-                    echo "🔍 배포 상태 확인 중..."
+                withCredentials([string(credentialsId: 'kubeconfig-base64', variable: 'KUBECONFIG_B64')]) {
+                    sh '''
+                        echo "🔍 배포 상태 확인 중..."
 
-                    # Pod 상태 확인
-                    echo "📋 Pod 상태:"
-                    kubectl get pods -n fanda-be-marketing -l app=fanda-banner || echo "Pod 아직 생성되지 않음"
+                        # kubeconfig 디코딩 및 설정
+                        echo $KUBECONFIG_B64 | base64 -d > /tmp/kubeconfig
+                        export KUBECONFIG=/tmp/kubeconfig
+                        chmod 600 /tmp/kubeconfig
 
-                    # Service 상태 확인
-                    echo "🌐 Service 상태:"
-                    kubectl get svc -n fanda-be-marketing -l app=fanda-banner || echo "Service 아직 생성되지 않음"
+                        # Pod 상태 확인
+                        echo "📋 Pod 상태:"
+                        kubectl get pods -n fanda-be-marketing -l app=fanda-banner || echo "Pod 아직 생성되지 않음"
 
-                    # Secret 상태 확인
-                    echo "🔐 Secret 상태:"
-                    kubectl get secret fanda-banner-secret -n fanda-be-marketing
+                        # Service 상태 확인
+                        echo "🌐 Service 상태:"
+                        kubectl get svc -n fanda-be-marketing -l app=fanda-banner || echo "Service 아직 생성되지 않음"
 
-                    echo "✅ 배포 상태 확인 완료"
-                '''
+                        # Secret 상태 확인
+                        echo "🔐 Secret 상태:"
+                        kubectl get secret fanda-banner-secret -n fanda-be-marketing
+
+                        echo "✅ 배포 상태 확인 완료"
+
+                        # 임시 kubeconfig 파일 정리
+                        rm -f /tmp/kubeconfig
+                    '''
+                }
             }
         }
     }
@@ -293,12 +310,23 @@ pipeline {
         }
         failure {
             echo "Banner 서비스 빌드 실패"
-            sh '''
-                echo "=== 디버그 정보 ==="
-                kubectl get pods -n fanda-be-marketing -l app=fanda-banner || true
-                kubectl describe secret fanda-banner-secret -n fanda-be-marketing || true
-                kubectl get events -n fanda-be-marketing --sort-by='.lastTimestamp' | tail -10 || true
-            '''
+            withCredentials([string(credentialsId: 'kubeconfig-base64', variable: 'KUBECONFIG_B64')]) {
+                sh '''
+                    echo "=== 디버그 정보 ==="
+
+                    # kubeconfig 디코딩 및 설정
+                    echo $KUBECONFIG_B64 | base64 -d > /tmp/kubeconfig
+                    export KUBECONFIG=/tmp/kubeconfig
+                    chmod 600 /tmp/kubeconfig
+
+                    kubectl get pods -n fanda-be-marketing -l app=fanda-banner || true
+                    kubectl describe secret fanda-banner-secret -n fanda-be-marketing || true
+                    kubectl get events -n fanda-be-marketing --sort-by='.lastTimestamp' | tail -10 || true
+
+                    # 임시 kubeconfig 파일 정리
+                    rm -f /tmp/kubeconfig
+                '''
+            }
         }
         cleanup {
             sh 'docker container prune -f || true'
