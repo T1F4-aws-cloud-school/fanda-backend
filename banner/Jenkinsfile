@@ -146,8 +146,10 @@ pipeline {
                         export PATH=$PATH:/usr/local/bin:/usr/bin
 
                         # kubectl 확인
-                        if ! command -v kubectl &> /dev/null; then
+                        if ! which kubectl > /dev/null 2>&1; then
                             echo "kubectl이 설치되지 않았습니다."
+                            echo "PATH: $PATH"
+                            which kubectl || echo "kubectl not found"
                             exit 1
                         fi
 
