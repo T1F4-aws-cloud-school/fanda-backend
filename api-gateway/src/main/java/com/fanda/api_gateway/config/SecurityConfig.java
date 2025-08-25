@@ -3,6 +3,7 @@ package com.fanda.api_gateway.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.GrantedAuthority;
@@ -40,12 +41,13 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/swagger-ui/**", "/v3/api-docs/**"
                         ).permitAll()
+                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/banner/api/v1/images/urls").permitAll()
                         .pathMatchers("/shop/api/v1/products/**").permitAll()
                         .pathMatchers("/feedback/api/v1/admin/**").hasRole("ADMIN")
                         .pathMatchers("/feedback/api/v1/user/**").hasAnyRole("USER", "ADMIN")
                         .pathMatchers("/banner/api/v1/reports/**").hasRole("ADMIN")
                         .pathMatchers("/banner/api/v1/reviews/**").hasRole("ADMIN")
-                        .pathMatchers("/banner/api/v1/images/urls").hasRole("ADMIN")
                         .pathMatchers("/feedback/api/v1/reports/**").hasRole("ADMIN")
                         .anyExchange().authenticated()
                 )
