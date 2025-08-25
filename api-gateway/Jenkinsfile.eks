@@ -1,0 +1,338 @@
+// api-gateway/Jenkinsfile.eks
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = 'ap-northeast-2'  // 서울 리전
+        AWS_ACCOUNT_ID = credentials('aws-account-id')
+        ECR_REPOSITORY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        PROJECT_NAME = 'fanda-be'
+        IMAGE_NAME = "${ECR_REPOSITORY}/${PROJECT_NAME}/api-gateway"
+        IMAGE_TAG = "${env.GIT_COMMIT.take(8)}"
+        DOCKER_BUILDKIT = '1'
+        GRADLE_OPTS = '-Dorg.gradle.daemon=false -Dorg.gradle.caching=false'
+        EKS_CLUSTER_NAME = 'fanda-eks-cluster'  // 실제 클러스터 이름으로 변경
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10', daysToKeepStr: '30'))
+        disableConcurrentBuilds()
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('트리거 검증') {
+            steps {
+                script {
+                    def author = sh(script: "git log -1 --pretty=%an", returnStdout: true).trim()
+                    def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+
+                    // 1. 먼저 Jenkins CI 커밋 스킵 (무한 루프 방지)
+                    if (author == "Jenkins CI" || commitMessage.contains('[skip ci]')) {
+                        echo "Jenkins CI 커밋 감지 - 파이프라인 스킵"
+                        env.SKIP_ALL = 'true'
+                        currentBuild.result = 'SUCCESS'
+                        return
+                    }
+
+                    // 2. 그 다음 경로 체크
+                    def changedFiles = sh(
+                        script: "git diff --name-only HEAD~1 HEAD",
+                        returnStdout: true
+                    ).trim()
+
+                    if (!changedFiles.contains('api-gateway/')) {
+                        echo "api-gateway 서비스 변경 없음 - 스킵"
+                        env.SKIP_ALL = 'true'
+                        currentBuild.result = 'SUCCESS'
+                        return
+                    }
+
+                    env.SKIP_ALL = 'false'
+                }
+            }
+        }
+
+        stage('AWS & EKS 설정') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials']
+                ]) {
+                    sh '''
+                        # AWS CLI 버전 확인
+                        aws --version
+
+                        # ECR 로그인
+                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPOSITORY}
+
+                        # EKS 클러스터 kubeconfig 설정
+                        aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}
+
+                        # kubectl 연결 테스트
+                        kubectl cluster-info
+
+                        echo "AWS & EKS 설정 완료"
+                    '''
+                }
+            }
+        }
+
+        stage('환경 검증') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                echo "API Gateway EKS 빌드 시작: ${IMAGE_NAME}:${IMAGE_TAG}"
+                dir('api-gateway') {
+                    sh '''
+                        # 필수 파일 존재 확인
+                        for file in build.gradle src/main/java Dockerfile k8s/eks; do
+                            [ ! -e "$file" ] && echo "필수 파일/디렉토리 누락: $file" && exit 1
+                        done
+
+                        # Gradle wrapper 실행 권한 확인
+                        [ -f "gradlew" ] && chmod +x gradlew
+
+                        echo "API Gateway 환경 검증 완료"
+                    '''
+                }
+            }
+        }
+
+        stage('애플리케이션 빌드') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                dir('api-gateway') {
+                    sh '''
+                        echo "API Gateway Gradle 빌드 시작..."
+                        if [ -f "gradlew" ]; then
+                            ./gradlew clean build -x test --no-daemon
+                        else
+                            gradle clean build -x test --no-daemon
+                        fi
+
+                        echo "API Gateway 빌드 완료"
+                    '''
+                }
+            }
+        }
+
+        stage('ECR 이미지 중복 확인') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials']
+                ]) {
+                    script {
+                        env.SKIP_BUILD = sh(
+                            script: """
+                                aws ecr describe-images --region ${AWS_REGION} \
+                                    --repository-name ${PROJECT_NAME}/api-gateway \
+                                    --image-ids imageTag=${IMAGE_TAG} >/dev/null 2>&1
+                            """,
+                            returnStatus: true
+                        ) == 0 ? 'true' : 'false'
+
+                        echo env.SKIP_BUILD == 'true' ?
+                            "이미지 재사용: ${IMAGE_NAME}:${IMAGE_TAG}" :
+                            "새 이미지 빌드: ${IMAGE_NAME}:${IMAGE_TAG}"
+                    }
+                }
+            }
+        }
+
+        stage('ECR 리포지토리 생성') {
+            when {
+                allOf {
+                    environment name: 'SKIP_ALL', value: 'false'
+                    environment name: 'SKIP_BUILD', value: 'false'
+                }
+            }
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials']
+                ]) {
+                    sh '''
+                        # ECR 리포지토리 존재 확인 후 생성
+                        aws ecr describe-repositories --region ${AWS_REGION} --repository-names ${PROJECT_NAME}/api-gateway >/dev/null 2>&1 || \
+                        aws ecr create-repository --region ${AWS_REGION} --repository-name ${PROJECT_NAME}/api-gateway \
+                            --image-scanning-configuration scanOnPush=true \
+                            --encryption-configuration encryptionType=AES256
+
+                        echo "ECR 리포지토리 준비 완료"
+                    '''
+                }
+            }
+        }
+
+        stage('빌드 & 푸시') {
+            when {
+                allOf {
+                    environment name: 'SKIP_ALL', value: 'false'
+                    environment name: 'SKIP_BUILD', value: 'false'
+                }
+            }
+            steps {
+                dir('api-gateway') {
+                    withCredentials([
+                        [$class: 'AmazonWebServicesCredentialsBinding',
+                         credentialsId: 'aws-credentials']
+                    ]) {
+                        sh '''
+                            # Docker 이미지 빌드
+                            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest \
+                                --label "version=${IMAGE_TAG}" \
+                                --label "build-date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+                                --label "service=api-gateway" \
+                                --label "cluster=eks" .
+
+                            # ECR에 이미지 푸시
+                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                            docker push ${IMAGE_NAME}:latest
+
+                            echo "API Gateway 이미지 ECR 푸시 완료: ${IMAGE_NAME}:${IMAGE_TAG}"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('EKS 매니페스트 업데이트') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials']
+                ]) {
+                    script {
+                        try {
+                            sh '''
+                                git config --global user.email "jenkins@company.com"
+                                git config --global user.name "Jenkins CI"
+                                git fetch origin && git checkout develop && git reset --hard origin/develop
+                            '''
+
+                            // AWS Account ID를 실제 값으로 치환
+                            sh '''
+                                # deployment.yaml에서 AWS_ACCOUNT_ID와 REGION 플레이스홀더 치환
+                                sed -i "s/AWS_ACCOUNT_ID/${AWS_ACCOUNT_ID}/g" api-gateway/k8s/eks/deployment.yaml
+                                sed -i "s/REGION/${AWS_REGION}/g" api-gateway/k8s/eks/deployment.yaml
+                                sed -i "s/AWS_ACCOUNT_ID/${AWS_ACCOUNT_ID}/g" api-gateway/k8s/eks/serviceaccount.yaml
+                            '''
+
+                            def currentTag = sh(
+                                script: "grep -o 'image: .*/api-gateway:.*' api-gateway/k8s/eks/deployment.yaml | cut -d':' -f4 || echo 'none'",
+                                returnStdout: true
+                            ).trim()
+
+                            if (currentTag == env.IMAGE_TAG) {
+                                echo "이미지 태그 동일 - 스킵"
+                                return
+                            }
+
+                            sh '''
+                                # EKS deployment.yaml 업데이트
+                                sed -i "s|image: ${ECR_REPOSITORY}/${PROJECT_NAME}/api-gateway:.*|image: ${ECR_REPOSITORY}/${PROJECT_NAME}/api-gateway:${IMAGE_TAG}|g" api-gateway/k8s/eks/deployment.yaml
+
+                                git add api-gateway/k8s/eks/deployment.yaml
+                                git commit -m "Auto-update api-gateway EKS image tag to ${IMAGE_TAG} [skip ci]"
+                            '''
+
+                            withCredentials([usernamePassword(
+                                credentialsId: 'github-credentials',
+                                usernameVariable: 'GITHUB_USER',
+                                passwordVariable: 'GITHUB_TOKEN'
+                            )]) {
+                                sh '''
+                                    git push https://${GITHUB_TOKEN}@github.com/T1F4-aws-cloud-school/fanda-backend.git HEAD:develop
+                                    echo "Git 푸시 성공"
+                                '''
+                            }
+
+                            echo "EKS 배포 업데이트 완료 - ArgoCD가 배포를 진행합니다"
+
+                        } catch (Exception e) {
+                            echo "배포 업데이트 실패: ${e.message}"
+                            currentBuild.result = 'UNSTABLE'
+                        }
+                    }
+                }
+            }
+        }
+
+        // 선택사항: 직접 kubectl로 배포 (ArgoCD 대신)
+        /*
+        stage('EKS 직접 배포') {
+            when {
+                allOf {
+                    environment name: 'SKIP_ALL', value: 'false'
+                    // 직접 배포를 원할 때만 활성화
+                }
+            }
+            steps {
+                dir('api-gateway') {
+                    withCredentials([
+                        [$class: 'AmazonWebServicesCredentialsBinding',
+                         credentialsId: 'aws-credentials']
+                    ]) {
+                        sh '''
+                            # 네임스페이스 생성 (이미 존재하면 무시)
+                            kubectl apply -f k8s/eks/namespace.yaml
+
+                            # 매니페스트 적용
+                            kubectl apply -f k8s/eks/ -n fanda-gateway
+
+                            # 배포 상태 확인
+                            kubectl rollout status deployment/fanda-gateway-deploy -n fanda-gateway --timeout=300s
+
+                            # 서비스 상태 확인
+                            kubectl get pods,svc -n fanda-gateway
+
+                            echo "EKS 직접 배포 완료"
+                        '''
+                    }
+                }
+            }
+        }
+        */
+    }
+
+    post {
+        always {
+            script {
+                if (env.SKIP_ALL != 'true') {
+                    withCredentials([
+                        [$class: 'AmazonWebServicesCredentialsBinding',
+                         credentialsId: 'aws-credentials']
+                    ]) {
+                        sh '''
+                            # ECR에서 로그아웃
+                            docker logout ${ECR_REPOSITORY} 2>/dev/null || true
+
+                            # 로컬 이미지 정리
+                            docker rmi ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest 2>/dev/null || true
+
+                            # Docker 시스템 정리
+                            docker system prune -f --volumes
+                        '''
+                    }
+                }
+            }
+        }
+        success {
+            echo env.SKIP_ALL == 'true' ? "자동 스킵 완료" :
+                 env.SKIP_BUILD == 'true' ? "이미지 재사용 성공" : "API Gateway EKS CI/CD 성공"
+        }
+        unstable {
+            echo "빌드 성공, Git 업데이트 실패"
+        }
+        failure {
+            echo "API Gateway EKS 빌드 실패"
+        }
+        cleanup {
+            sh 'docker container prune -f || true'
+        }
+    }
+}
