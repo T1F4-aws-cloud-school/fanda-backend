@@ -1,5 +1,6 @@
 package com.fanda.banner.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -9,16 +10,21 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 @Configuration
 public class BedrockConfig {
 
+    @Value("${aws.region:${AWS_REGION:}}")
+    private String region;
+
+    private Region requireRegion() {
+        if (region == null || region.isBlank()) {
+            throw new IllegalStateException("AWS_REGION (or aws.region) is required");
+        }
+        return Region.of(region);
+    }
+
     @Bean(name = "bedrockRuntimeClient")
     public BedrockRuntimeClient bedrockClient() {
-        String region = System.getenv("AWS_REGION");
-        if (region == null || region.isBlank()) {
-            throw new IllegalStateException("AWS_REGION environment variable is required");
-        }
-
         return BedrockRuntimeClient.builder()
                 .credentialsProvider(DefaultCredentialsProvider.create())
-                .region(Region.of(region))
+                .region(requireRegion())
                 .build();
     }
 }
