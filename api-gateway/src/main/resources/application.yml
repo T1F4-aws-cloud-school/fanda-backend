@@ -7,6 +7,9 @@ spring:
     compatibility-verifier:
       enabled: false
     gateway:
+      httpclient:
+        connect-timeout: 10000
+        response-timeout: 300s
       routes:
         # Auth 서비스 (인증 불필요하므로 먼저)
         - id: auth
@@ -63,9 +66,6 @@ spring:
             - Path=/feedback/**
           filters:
             - StripPrefix=1
-          metadata:
-            response-timeout: 300000  # 5분 (밀리초)
-            connect-timeout: 10000
 
 jwt:
   secret: ${JWT_SECRET}
