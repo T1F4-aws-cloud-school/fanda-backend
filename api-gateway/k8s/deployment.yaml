@@ -29,7 +29,7 @@ spec:
       containers:
         - name: fanda-gateway
           # Jenkins가 자동으로 업데이트하는 이미지 태그
-          image: 192.168.2.111/fanda-be/api-gateway:81824f2d
+          image: 192.168.2.111/fanda-be/api-gateway:5dec514f
           imagePullPolicy: Always
 
           ports:
