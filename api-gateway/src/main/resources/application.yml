@@ -63,6 +63,9 @@ spring:
             - Path=/feedback/**
           filters:
             - StripPrefix=1
+          metadata:
+            response-timeout: 300000  # 5분 (밀리초)
+            connect-timeout: 10000
 
 jwt:
   secret: ${JWT_SECRET}

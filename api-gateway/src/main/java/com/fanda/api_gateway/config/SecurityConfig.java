@@ -46,6 +46,7 @@ public class SecurityConfig {
                         .pathMatchers("/banner/api/v1/reports/**").hasRole("ADMIN")
                         .pathMatchers("/banner/api/v1/reviews/**").hasRole("ADMIN")
                         .pathMatchers("/banner/api/v1/images/urls").hasRole("ADMIN")
+                        .pathMatchers("/feedback/api/v1/reports/**").hasRole("ADMIN")
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(o -> o.jwt(j -> j
