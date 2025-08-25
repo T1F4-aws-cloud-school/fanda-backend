@@ -3,6 +3,7 @@ package com.fanda.banner.service;
 import com.fanda.banner.config.S3Uploader;
 import com.fanda.banner.dto.ReportResponseDto;
 import com.fanda.banner.entity.CollectedReview;
+import com.fanda.banner.entity.ImprovementPhase;
 import com.fanda.banner.generator.PdfGenerator;
 import com.fanda.banner.repository.BedrockClient;
 import com.fanda.banner.repository.CollectedReviewRepository;
@@ -10,6 +11,7 @@ import com.fanda.banner.repository.ShopClient;
 import com.fanda.banner.template.PromptTemplate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -29,9 +31,13 @@ public class ReviewAnalysisService {
     //private final ImageGenerationService imageGenerationService;
     private final ShopClient shopClient;
 
+    @Transactional
     public ReportResponseDto generateAndUploadPdfReports(){
-        // 오늘 수집된 리뷰
-        List<CollectedReview> reviews = collectedReviewRepository.findAll();
+        // BEFORE 리뷰
+        List<CollectedReview> reviews = collectedReviewRepository.findAllByPhase(ImprovementPhase.BEFORE);
+        if(reviews.isEmpty()){
+            return new ReportResponseDto(null, "신규 리뷰 없음");
+        }
 
         // 긍정 리포트 용
         String positiveReviewText = reviews.stream().map(CollectedReview::getContent).collect(Collectors.joining("\n- 리뷰: ", "\n", ""));
@@ -57,33 +63,10 @@ public class ReviewAnalysisService {
         String positiveReport = bedrockClient.generate(positivePrompt);
         String negativeReport = bedrockClient.generate(negativePrompt);
 
-        // 3. catchphrase, 상품명 추출
-//        String catchPhraseKo = extractCatchPhrase(positiveReport);
-//        String productName = extractProductName(positiveReport);
-//
-//        // 4-1. 영어로 번역
-//        String catchPhraseEn = bedrockClient.generate("""
-//            Translate the following Korean marketing phrase into fluent English for an online shopping banner:
-//            """ + catchPhraseKo).replace("\n", "").trim();
-//
-//        // 4-2. 배너 이미지 생성용 프롬프트
-//        //String bannerPrompt = PromptTemplate.getBannerImagePrompt(catchPhraseEn);
-//        String bannerPrompt = String.format("""
-//            Create a banner image (750x320 px) for a shopping app.
-//
-//            - Product: %s
-//            - Include the phrase: "%s" in bold, stylish white text centered on the image.
-//            - Use a premium and minimal background that fits the product's characteristics.
-//            - No logos, no borders, no icons.
-//        """, productName, catchPhraseEn);
-//
-//        // 5. Stability로 이미지 생성
-//        byte[] imageBytes = imageGenerationService.generateImageFromPrompt(bannerPrompt);
-
-        // 6. timestamp
+        // 3. timestamp
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
 
-        // 7. 파일명 생성
+        // 4. 파일명 생성
         String imageKey = "banners/banner_"+timestamp+".png";
         String positiveKey = "reports/positive/positive_" + timestamp + ".pdf";
         String negativeKey = "reports/negative/negative_" + timestamp + ".pdf";
@@ -100,6 +83,12 @@ public class ReviewAnalysisService {
 
             s3Uploader.uploadFile(positivePdf, positiveKey);
             s3Uploader.uploadFile(negativePdf, negativeKey);
+
+            // 업로드 성공 시 AFTER 전환
+            for(CollectedReview r : reviews){
+                r.markAfter();
+            }
+            collectedReviewRepository.saveAll(reviews);
 
             //return new ReportResponseDto(imageUrl, catchPhraseKo);
             String catchPhraseKo = extractCatchPhrase(positiveReport);
