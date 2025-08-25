@@ -43,8 +43,16 @@ public class ImprovementReportService {
 
         // 1. s3에서 개선 전 리포트 로트 (텍스트 간주)
         String baseline = readS3Text(baselineReportKey);
+
+        // 기준 보고서가 너무 길면 요약
+        if (baseline.length() > 8000) {
+            baseline = baseline.substring(0, 8000) + "\n[...생략...]";
+            System.out.println("기준 보고서가 너무 길어 8000자로 잘렸습니다.");
+        }
+
         // 2. 개선 후 리뷰 조회
         List<ReviewForFeedbackDto> after = shopClient.getByProductAndRange(productId, improvedStart, improvedEnd);
+
         // 텍스트로 정리
         String afterText = after.stream().map(r->"- ["+r.id()+"]["+(r.rating()== null ? 0: r.rating()) + "]["+r.createdAt()+"] "+safe(r.content()))
                 .collect(Collectors.joining("\n"));
