@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -32,11 +33,11 @@ public class ReviewAnalysisService {
     private final ShopClient shopClient;
 
     @Transactional
-    public ReportResponseDto generateAndUploadPdfReports(){
+    public List<ReportResponseDto> generateAndUploadPdfReports(){
         // BEFORE 리뷰
         List<CollectedReview> reviews = collectedReviewRepository.findAllByPhase(ImprovementPhase.BEFORE);
         if(reviews.isEmpty()){
-            return new ReportResponseDto(null, "신규 리뷰 없음");
+            return List.of(new ReportResponseDto(null, "신규 리뷰 없음"));
         }
 
         // 긍정 리포트 용
@@ -61,6 +62,8 @@ public class ReviewAnalysisService {
 
         // 2. 리포트 생성
         String positiveReport = bedrockClient.generate(positivePrompt);
+        // 2-1. catchphrase 추출
+        List<String> phrases = extractCatchPhrases(positiveReport);
         String negativeReport = bedrockClient.generate(negativePrompt);
 
         // 3. timestamp
@@ -91,8 +94,9 @@ public class ReviewAnalysisService {
             collectedReviewRepository.saveAll(reviews);
 
             //return new ReportResponseDto(imageUrl, catchPhraseKo);
-            String catchPhraseKo = extractCatchPhrase(positiveReport);
-            return new ReportResponseDto(null, catchPhraseKo);
+            //String catchPhraseKo = extractCatchPhrases(positiveReport);
+            //return new ReportResponseDto(null, catchPhraseKo);
+            return phrases.stream().map(p->new ReportResponseDto(null, p)).toList();
         }
         catch (Exception e){
             e.printStackTrace();
@@ -118,19 +122,24 @@ public class ReviewAnalysisService {
                 .orElseThrow(() -> new IllegalArgumentException("평점 낮은 상품 없음"));
     }
 
-    private String extractCatchPhrase(String text) {
+    private List<String> extractCatchPhrases(String text) {
+        List<String> phrases = new ArrayList<>();
         boolean inTarget = false;
-        for (String line : text.split("\n")) {
-            line = line.trim();
+        for (String raw : text.split("\n")) {
+            String line = raw.trim();
             if (line.equalsIgnoreCase("[MARKETING_PHRASES]")) {
                 inTarget = true;
                 continue;
             }
-            if (inTarget && line.startsWith("-")) {
-                return line.substring(1).trim();
+            if (inTarget) {
+                if (line.startsWith("[") && line.endsWith("]")) break;
+                if (line.isBlank()) break;
+                if (line.startsWith("-")) {
+                    phrases.add(line.substring(1).trim());
+                }
             }
         }
-        return "[캐치프레이즈 추출 실패]";
+        return phrases.isEmpty() ? List.of("[캐치프레이즈 추출 실패]") : phrases;
     }
 
 
