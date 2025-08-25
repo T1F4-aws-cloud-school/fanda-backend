@@ -38,4 +38,8 @@ public class CollectedReview {
 
     @Column(nullable = false)
     private Integer rating;
+
+    public void markAfter(){
+        this.phase = ImprovementPhase.AFTER;
+    }
 }
