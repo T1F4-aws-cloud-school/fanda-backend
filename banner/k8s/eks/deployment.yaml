@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fanda-banner-deploy
+  namespace: fanda-be-marketing
+  labels:
+    app: fanda-banner
+    version: v1
+    component: backend
+    service: banner
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: fanda-banner
+  template:
+    metadata:
+      labels:
+        app: fanda-banner
+        version: v1
+        component: backend
+        service: banner
+    spec:
+      containers:
+        - name: fanda-banner
+          # ECR 이미지 (Jenkins가 자동으로 업데이트)
+          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/banner-service:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8004
+              name: http
+              protocol: TCP
+
+          env:
+            # Spring Boot 프로파일
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+
+            # 타임존 설정
+            - name: TZ
+              value: "Asia/Seoul"
+
+            # JVM 옵션
+            - name: JAVA_OPTS
+              value: "-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
+
+            # RDS MySQL 연결 정보
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://fanda-rds-instance.cetoqsmoe8u7.us-east-1.rds.amazonaws.com:3306/banner_db?useSSL=true&requireSSL=true&serverTimezone=Asia/Seoul"
+
+            - name: DB_HOST
+              value: "fanda-rds-instance.cetoqsmoe8u7.us-east-1.rds.amazonaws.com"
+
+            # 데이터베이스 인증 정보
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: DB_ROOT_USERNAME
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: DB_ROOT_PASSWORD
+
+            # AWS S3 설정
+            - name: AWS_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: AWS_S3_BUCKET
+
+            # AWS 자격증명
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: AWS_ACCESS_KEY_ID
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: AWS_SECRET_ACCESS_KEY
+
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: AWS_SESSION_TOKEN
+
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: AWS_REGION
+
+            # MSK Kafka 설정
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: KAFKA_BOOTSTRAP_SERVERS
+
+            # JPA 설정
+            - name: JPA_DDL_AUTO
+              value: "update"
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+
+      # 보안 컨텍스트
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
