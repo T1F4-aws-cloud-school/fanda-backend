@@ -10,8 +10,6 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import java.time.Duration;
-
 @Configuration
 @Profile("prod")
 public class RedisConfig {
@@ -33,14 +31,12 @@ public class RedisConfig {
         RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration();
         redisConfig.setHostName(redisHost);
         redisConfig.setPort(redisPort);
-        redisConfig.setUsername(redisUsername);  // 사용자명 추가
+        redisConfig.setUsername(redisUsername);
         redisConfig.setPassword(redisPassword);
 
-        // ElastiCache TLS 설정
+        // ElastiCache TLS 설정 (타임아웃 제거)
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-                .useSsl()  // TLS 활성화
-                .commandTimeout(Duration.ofSeconds(30))  // 타임아웃 설정
-                .shutdownTimeout(Duration.ofMillis(100))
+                .useSsl()  // TLS만 활성화
                 .build();
 
         return new LettuceConnectionFactory(redisConfig, clientConfig);
