@@ -77,13 +77,11 @@ pipeline {
                         # 네임스페이스 존재 확인
                         kubectl get namespace fanda-gateway || kubectl create namespace fanda-gateway
 
-                        # 기존 Secret 삭제
-                        kubectl delete secret fanda-gateway-secret -n fanda-gateway --ignore-not-found=true
-
-                        # 새 Secret 생성
+                        # Secret 생성/업데이트 (ArgoCD 충돌 방지)
                         kubectl create secret generic fanda-gateway-secret \
                           --from-literal=JWT_SECRET="${JWT_SECRET}" \
-                          -n fanda-gateway
+                          -n fanda-gateway \
+                          --dry-run=client -o yaml | kubectl apply -f -
 
                         # Secret 생성 확인
                         kubectl get secret fanda-gateway-secret -n fanda-gateway
