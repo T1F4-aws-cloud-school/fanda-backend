@@ -47,10 +47,30 @@ pipeline {
             }
         }
 
+        stage('AWS CLI 설치') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                sh '''
+                    echo "AWS CLI 설치 확인..."
+                    if ! command -v aws &> /dev/null; then
+                        echo "AWS CLI 설치 중..."
+                        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                        sudo unzip awscliv2.zip
+                        sudo ./aws/install --update
+                        rm -rf awscliv2.zip aws/
+                    fi
+                    aws --version
+                '''
+            }
+        }
+
         stage('Secret 배포') {
             when { environment name: 'SKIP_ALL', value: 'false' }
             steps {
                 withCredentials([
+                    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
+                    string(credentialsId: 'aws-session-token', variable: 'AWS_SESSION_TOKEN'),
                     string(credentialsId: 'rds-username', variable: 'DB_USERNAME'),
                     string(credentialsId: 'rds-password', variable: 'DB_PASSWORD'),
                     string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
@@ -59,10 +79,22 @@ pipeline {
                     sh '''
                         echo "Secret 배포 시작..."
 
+                        # AWS 자격증명 설정
+                        export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+                        export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+                        export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}"
+                        export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION}"
+
                         # kubeconfig 설정
                         echo $KUBECONFIG_B64 | base64 -d > /tmp/kubeconfig
                         export KUBECONFIG=/tmp/kubeconfig
                         chmod 600 /tmp/kubeconfig
+
+                        # EKS 클러스터 인증 업데이트
+                        aws eks update-kubeconfig --region us-east-1 --name fanda-eks --kubeconfig /tmp/kubeconfig
+
+                        # 네임스페이스 존재 확인
+                        kubectl get namespace fanda-be-auth || kubectl create namespace fanda-be-auth
 
                         # 기존 Secret 삭제 (있을 경우)
                         kubectl delete secret fanda-auth-secret -n fanda-be-auth --ignore-not-found=true
@@ -134,7 +166,8 @@ pipeline {
                                 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
                                 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
                                 export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}"
-                                docker manifest inspect ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} >/dev/null 2>&1
+                                export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION}"
+                                aws ecr describe-images --repository-name fanda-be/auth-service --image-ids imageTag=${IMAGE_TAG} --region us-east-1 >/dev/null 2>&1
                             ''',
                             returnStatus: true
                         ) == 0 ? 'true' : 'false'
@@ -211,8 +244,8 @@ pipeline {
                         }
 
                         sh '''
-                            sed -i "s|image: .*/auth-service:.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}|g" auth/k8s/deployment.yaml
-                            git add auth/k8s/deployment.yaml
+                            sed -i "s|image: .*/auth-service:.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}|g" auth/k8s/eks/deployment.yaml
+                            git add auth/k8s/eks/deployment.yaml
                             git commit -m "Auto-update auth-service image tag to ${IMAGE_TAG} [skip ci]"
                         '''
 
