@@ -20,10 +20,7 @@ public class RedisConfig {
     @Value("${REDIS_PORT}")
     private int redisPort;
 
-    @Value("${REDIS_USERNAME}")
-    private String redisUsername;
-
-    @Value("${REDIS_PASSWORD}")
+    @Value("${REDIS_PASSWORD:}")
     private String redisPassword;
 
     @Bean
@@ -31,8 +28,7 @@ public class RedisConfig {
         RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration();
         redisConfig.setHostName(redisHost);
         redisConfig.setPort(redisPort);
-        redisConfig.setUsername(redisUsername);
-        redisConfig.setPassword(redisPassword);
+
 
         // ElastiCache TLS 설정 (타임아웃 제거)
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
