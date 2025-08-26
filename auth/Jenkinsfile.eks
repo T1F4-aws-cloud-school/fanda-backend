@@ -76,6 +76,9 @@ pipeline {
                         # EKS kubeconfig 업데이트
                         aws eks update-kubeconfig --region us-east-1 --name fanda-eks --kubeconfig /tmp/kubeconfig
 
+                        # API 버전 호환성 수정
+                        sed -i 's/v1alpha1/v1beta1/g' /tmp/kubeconfig
+
                         # 네임스페이스 존재 확인
                         kubectl get namespace fanda-be-auth || kubectl create namespace fanda-be-auth
 
