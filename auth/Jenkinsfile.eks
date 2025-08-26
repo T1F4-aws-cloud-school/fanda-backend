@@ -111,7 +111,7 @@ pipeline {
 
                         [ -f "gradlew" ] && chmod +x gradlew
 
-                        echo "Auth 서비스 환경 검증 완료"
+                        echo "Auth 서비스 환경 검증 완료!"
                     '''
                 }
             }
