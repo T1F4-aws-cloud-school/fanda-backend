@@ -13,6 +13,6 @@ spec:
       targetPort: 8002
       protocol: TCP
       name: http
-      nodePort: 30080
+      nodePort: 30081
   selector:
     app: fanda-auth
