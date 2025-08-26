@@ -38,7 +38,7 @@ spec:
               protocol: TCP
 
           env:
-            # Spring Boot 프로파일
+            # Spring Boot 프로파일 - EKS에서는 prod 프로파일 사용
             - name: SPRING_PROFILES_ACTIVE
               value: "prod"
 
@@ -75,6 +75,13 @@ spec:
               value: "master.fanda-redis-cluster.l4acue.use1.cache.amazonaws.com"
             - name: REDIS_PORT
               value: "6379"
+            - name: REDIS_USERNAME
+              value: "fanda-app-user-password"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-auth-secret
+                  key: REDIS_PASSWORD
 
             # JWT 설정 (Secret에서 참조)
             - name: JWT_SECRET

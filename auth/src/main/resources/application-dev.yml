@@ -1,0 +1,7 @@
+# 온프레미스 개발 환경용 설정
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      timeout: 2000ms
