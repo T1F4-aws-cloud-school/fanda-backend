@@ -24,7 +24,7 @@ pipeline {
                     def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
 
                     if (author == "Jenkins CI" || commitMessage.contains('[skip ci]')) {
-                        echo "Jenkins CI 커밋 감지 - 파이프라인 스킵"
+                        echo "Jenkins CI 커밋 감지 - 파이프라인 스킵!"
                         env.SKIP_ALL = 'true'
                         currentBuild.result = 'SUCCESS'
                         return
