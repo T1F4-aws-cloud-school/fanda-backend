@@ -1,0 +1,282 @@
+pipeline {
+    agent any
+
+    environment {
+        ECR_REGISTRY = '746491138596.dkr.ecr.us-east-1.amazonaws.com'
+        ECR_REPOSITORY = 'fanda-be/banner-service'
+        IMAGE_TAG = "${env.GIT_COMMIT.take(8)}"
+        AWS_DEFAULT_REGION = 'us-east-1'
+        DOCKER_BUILDKIT = '1'
+        GRADLE_OPTS = '-Dorg.gradle.daemon=false -Dorg.gradle.caching=false'
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10', daysToKeepStr: '30'))
+        disableConcurrentBuilds()
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('트리거 검증') {
+            steps {
+                script {
+                    def author = sh(script: "git log -1 --pretty=%an", returnStdout: true).trim()
+                    def commitMessage = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+
+                    if (author == "Jenkins CI" || commitMessage.contains('[skip ci]')) {
+                        echo "Jenkins CI 커밋 감지 - 파이프라인 스킵"
+                        env.SKIP_ALL = 'true'
+                        currentBuild.result = 'SUCCESS'
+                        return
+                    }
+
+                    def changedFiles = sh(
+                        script: "git diff --name-only HEAD~1 HEAD",
+                        returnStdout: true
+                    ).trim()
+
+                    if (!changedFiles.contains('banner/')) {
+                        echo "banner 서비스 변경 없음 - 스킵"
+                        env.SKIP_ALL = 'true'
+                        currentBuild.result = 'SUCCESS'
+                        return
+                    }
+
+                    env.SKIP_ALL = 'false'
+                }
+            }
+        }
+
+        stage('Secret 배포') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                withCredentials([
+                    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
+                    string(credentialsId: 'aws-session-token', variable: 'AWS_SESSION_TOKEN'),
+                    string(credentialsId: 'rds-username', variable: 'DB_USERNAME'),
+                    string(credentialsId: 'rds-password', variable: 'DB_PASSWORD'),
+                    string(credentialsId: 's3-bucket', variable: 'AWS_S3_BUCKET'),
+                    string(credentialsId: 'kafka-servers', variable: 'KAFKA_SERVERS'),
+                    string(credentialsId: 'kubeconfig-base64', variable: 'KUBECONFIG_B64')
+                ]) {
+                    sh '''
+                        echo "Banner Secret 배포 시작..."
+
+                        # AWS 자격증명 설정
+                        export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+                        export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+                        export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}"
+                        export AWS_DEFAULT_REGION="us-east-1"
+
+                        # kubeconfig 파일 생성
+                        echo $KUBECONFIG_B64 | base64 -d > /tmp/kubeconfig
+                        chmod 600 /tmp/kubeconfig
+                        export KUBECONFIG=/tmp/kubeconfig
+
+                        # EKS kubeconfig 업데이트
+                        aws eks update-kubeconfig --region us-east-1 --name fanda-eks --kubeconfig /tmp/kubeconfig
+
+                        # 네임스페이스 존재 확인
+                        kubectl get namespace fanda-be-marketing || kubectl create namespace fanda-be-marketing
+
+                        # 기존 Secret 삭제
+                        kubectl delete secret fanda-banner-secret -n fanda-be-marketing --ignore-not-found=true
+
+                        # 새 Secret 생성 (AWS 자격증명 포함)
+                        kubectl create secret generic fanda-banner-secret \
+                          --from-literal=DB_ROOT_USERNAME="${DB_USERNAME}" \
+                          --from-literal=DB_ROOT_PASSWORD="${DB_PASSWORD}" \
+                          --from-literal=AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+                          --from-literal=AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+                          --from-literal=AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
+                          --from-literal=AWS_REGION="us-east-1" \
+                          --from-literal=AWS_S3_BUCKET="${AWS_S3_BUCKET}" \
+                          --from-literal=KAFKA_BOOTSTRAP_SERVERS="${KAFKA_SERVERS}" \
+                          -n fanda-be-marketing
+
+                        # Secret 생성 확인
+                        kubectl get secret fanda-banner-secret -n fanda-be-marketing
+
+                        echo "Banner Secret 배포 완료"
+                        rm -f /tmp/kubeconfig
+                    '''
+                }
+            }
+        }
+
+        stage('환경 검증') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                echo "Banner 서비스 빌드 시작: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+                dir('banner') {
+                    sh '''
+                        for file in build.gradle src/main/java Dockerfile; do
+                            [ ! -e "$file" ] && echo "필수 파일/디렉토리 누락: $file" && exit 1
+                        done
+
+                        [ -f "gradlew" ] && chmod +x gradlew
+
+                        echo "Banner 서비스 환경 검증 완료"
+                    '''
+                }
+            }
+        }
+
+        stage('애플리케이션 빌드') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                dir('banner') {
+                    sh '''
+                        echo "Banner 서비스 Gradle 빌드 시작..."
+                        if [ -f "gradlew" ]; then
+                            ./gradlew clean build -x test --no-daemon
+                        else
+                            gradle clean build -x test --no-daemon
+                        fi
+
+                        echo "Banner 서비스 빌드 완료"
+                    '''
+                }
+            }
+        }
+
+        stage('이미지 중복 확인') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                script {
+                    withCredentials([
+                        string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
+                        string(credentialsId: 'aws-session-token', variable: 'AWS_SESSION_TOKEN')
+                    ]) {
+                        env.SKIP_BUILD = sh(
+                            script: '''
+                                export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+                                export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+                                export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}"
+                                export AWS_DEFAULT_REGION="us-east-1"
+                                aws ecr describe-images --repository-name fanda-be/banner-service --image-ids imageTag=${IMAGE_TAG} --region us-east-1 >/dev/null 2>&1
+                            ''',
+                            returnStatus: true
+                        ) == 0 ? 'true' : 'false'
+                    }
+
+                    echo env.SKIP_BUILD == 'true' ?
+                        "이미지 재사용: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" :
+                        "새 이미지 빌드: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('빌드 & 푸시') {
+            when {
+                allOf {
+                    environment name: 'SKIP_ALL', value: 'false'
+                    environment name: 'SKIP_BUILD', value: 'false'
+                }
+            }
+            steps {
+                dir('banner') {
+                    withCredentials([
+                        string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
+                        string(credentialsId: 'aws-session-token', variable: 'AWS_SESSION_TOKEN')
+                    ]) {
+                        sh '''
+                            export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+                            export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+                            export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}"
+                            export AWS_DEFAULT_REGION="us-east-1"
+
+                            # ECR 로그인
+                            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+                            # Docker 이미지 빌드
+                            docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} \
+                                       -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest \
+                                --label "version=${IMAGE_TAG}" \
+                                --label "build-date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+                                --label "service=banner" .
+
+                            # ECR에 이미지 푸시
+                            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+                            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
+
+                            echo "Banner 서비스 빌드 완료: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('배포 업데이트') {
+            when { environment name: 'SKIP_ALL', value: 'false' }
+            steps {
+                script {
+                    try {
+                        sh '''
+                            git config --global user.email "jenkins@company.com"
+                            git config --global user.name "Jenkins CI"
+                            git fetch origin && git checkout develop && git reset --hard origin/develop
+                        '''
+
+                        def currentTag = sh(
+                            script: "grep -o 'image: .*/banner-service:.*' banner/k8s/eks/deployment.yaml | cut -d':' -f3 || echo 'none'",
+                            returnStdout: true
+                        ).trim()
+
+                        if (currentTag == env.IMAGE_TAG) {
+                            echo "이미지 태그 동일 - 스킵"
+                            return
+                        }
+
+                        sh '''
+                            sed -i "s|image: .*/banner-service:.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}|g" banner/k8s/eks/deployment.yaml
+                            git add banner/k8s/eks/deployment.yaml
+                            git commit -m "Auto-update banner-service image tag to ${IMAGE_TAG} [skip ci]"
+                        '''
+
+                        withCredentials([usernamePassword(
+                            credentialsId: 'github-credentials',
+                            usernameVariable: 'GITHUB_USER',
+                            passwordVariable: 'GITHUB_TOKEN'
+                        )]) {
+                            sh '''
+                                git push https://${GITHUB_TOKEN}@github.com/T1F4-aws-cloud-school/fanda-backend.git HEAD:develop
+                                echo "Git 푸시 성공"
+                            '''
+                        }
+
+                        echo "배포 업데이트 완료 - ArgoCD가 배포를 진행합니다"
+
+                    } catch (Exception e) {
+                        echo "배포 업데이트 실패: ${e.message}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                if (env.SKIP_ALL != 'true') {
+                    sh '''
+                        docker logout ${ECR_REGISTRY} 2>/dev/null || true
+                        docker rmi ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest 2>/dev/null || true
+                        docker system prune -f --volumes
+                    '''
+                }
+            }
+        }
+        success {
+            echo env.SKIP_ALL == 'true' ? "자동 스킵 완료" :
+                 env.SKIP_BUILD == 'true' ? "이미지 재사용 성공" : "Banner 서비스 CI/CD 성공"
+        }
+        unstable { echo "빌드 성공, Git 업데이트 실패" }
+        failure { echo "Banner 서비스 빌드 실패" }
+        cleanup { sh 'docker container prune -f || true' }
+    }
+}
