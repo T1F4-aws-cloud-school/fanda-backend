@@ -117,7 +117,7 @@ pipeline {
 
                         [ -f "gradlew" ] && chmod +x gradlew
 
-                        echo "Banner 서비스 환경 검증 완료"
+                        echo "Banner 서비스 환경 검증 완료!"
                     '''
                 }
             }
