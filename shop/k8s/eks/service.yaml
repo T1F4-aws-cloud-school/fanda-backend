@@ -7,7 +7,7 @@ metadata:
     app: fanda-shop
     service: shop
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   ports:
     - port: 8006
       targetPort: 8006
