@@ -7,11 +7,12 @@ metadata:
     app: fanda-auth
     service: auth
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
     - port: 8002
       targetPort: 8002
       protocol: TCP
       name: http
+      nodePort: 30080
   selector:
     app: fanda-auth
