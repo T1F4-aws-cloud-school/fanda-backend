@@ -29,7 +29,7 @@ spec:
       containers:
         - name: fanda-shop
           # ECR 이미지 (Jenkins가 자동으로 업데이트)
-          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/shop-service:c779654d
+          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/shop-service:f858f144
           imagePullPolicy: Always
 
           ports:
