@@ -59,23 +59,24 @@ pipeline {
                     string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
                     string(credentialsId: 'kubeconfig-base64', variable: 'KUBECONFIG_B64')
                 ]) {
-                    sh '''
+
+sh '''
                         echo "Secret 배포 시작..."
 
                         # kubeconfig 파일을 먼저 생성
                         echo $KUBECONFIG_B64 | base64 -d > /tmp/kubeconfig
-                        chmod 600 /tmp/kubeconfig
+                        chmod 666 /tmp/kubeconfig
                         export KUBECONFIG=/tmp/kubeconfig
 
-                        # Docker로 EKS kubeconfig 업데이트
+                        # Docker로 EKS kubeconfig 업데이트 (컨테이너 내부 경로 사용)
                         docker run --rm \
                             -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
                             -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
                             -e AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
                             -e AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION}" \
-                            -v /tmp/kubeconfig:/tmp/kubeconfig \
+                            -v /tmp/kubeconfig:/root/.kube/config \
                             amazon/aws-cli:latest \
-                            eks update-kubeconfig --region us-east-1 --name fanda-eks --kubeconfig /tmp/kubeconfig
+                            eks update-kubeconfig --region us-east-1 --name fanda-eks
 
                         # 네임스페이스 존재 확인
                         kubectl get namespace fanda-be-auth || kubectl create namespace fanda-be-auth
