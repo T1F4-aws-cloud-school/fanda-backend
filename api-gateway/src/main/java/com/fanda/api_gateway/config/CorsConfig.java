@@ -18,6 +18,10 @@ public class CorsConfig {
                 "http://localhost:3000",
                 "http://192.168.2.100:*",
                 "http://192.168.2.247:*",
+                "https://*.elb.amazonaws.com",             // AWS Load Balancer
+                "https://*.elb.us-east-1.amazonaws.com",   // US-East-1 ELB
+                "http://*.elb.amazonaws.com",              // HTTP ELB (개발용)
+                "http://*.elb.us-east-1.amazonaws.com",    // HTTP ELB US-East-1
                 "*"
         ));
         config.addAllowedHeader("*");
