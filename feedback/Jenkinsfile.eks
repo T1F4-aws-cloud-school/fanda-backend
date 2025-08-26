@@ -36,7 +36,7 @@ pipeline {
                     ).trim()
 
                     if (!changedFiles.contains('feedback/')) {
-                        echo "Feedback 서비스 변경 없음 - 스킵"
+                        echo "Feedback 서비스 변경 없음 - 스킵!"
                         env.SKIP_ALL = 'true'
                         currentBuild.result = 'SUCCESS'
                         return
