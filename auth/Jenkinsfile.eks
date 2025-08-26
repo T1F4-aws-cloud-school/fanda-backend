@@ -59,29 +59,27 @@ pipeline {
                     string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
                     string(credentialsId: 'kubeconfig-base64', variable: 'KUBECONFIG_B64')
                 ]) {
-
-sh '''
+                    sh '''
                         echo "Secret 배포 시작..."
 
-                        # kubeconfig 파일을 먼저 생성
+                        # AWS 자격증명 설정
+                        export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+                        export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+                        export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}"
+                        export AWS_DEFAULT_REGION="us-east-1"
+
+                        # kubeconfig 파일 생성
                         echo $KUBECONFIG_B64 | base64 -d > /tmp/kubeconfig
-                        chmod 666 /tmp/kubeconfig
+                        chmod 600 /tmp/kubeconfig
                         export KUBECONFIG=/tmp/kubeconfig
 
-                        # Docker로 EKS kubeconfig 업데이트 (컨테이너 내부 경로 사용)
-                        docker run --rm \
-                            -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
-                            -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
-                            -e AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
-                            -e AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION}" \
-                            -v /tmp/kubeconfig:/root/.kube/config \
-                            amazon/aws-cli:latest \
-                            eks update-kubeconfig --region us-east-1 --name fanda-eks
+                        # EKS kubeconfig 업데이트
+                        aws eks update-kubeconfig --region us-east-1 --name fanda-eks --kubeconfig /tmp/kubeconfig
 
                         # 네임스페이스 존재 확인
                         kubectl get namespace fanda-be-auth || kubectl create namespace fanda-be-auth
 
-                        # 기존 Secret 삭제 (있을 경우)
+                        # 기존 Secret 삭제
                         kubectl delete secret fanda-auth-secret -n fanda-be-auth --ignore-not-found=true
 
                         # 새 Secret 생성
@@ -148,13 +146,11 @@ sh '''
                     ]) {
                         env.SKIP_BUILD = sh(
                             script: '''
-                                docker run --rm \
-                                    -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
-                                    -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
-                                    -e AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
-                                    -e AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION}" \
-                                    amazon/aws-cli:latest \
-                                    ecr describe-images --repository-name fanda-be/auth-service --image-ids imageTag=${IMAGE_TAG} --region us-east-1 >/dev/null 2>&1
+                                export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+                                export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+                                export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}"
+                                export AWS_DEFAULT_REGION="us-east-1"
+                                aws ecr describe-images --repository-name fanda-be/auth-service --image-ids imageTag=${IMAGE_TAG} --region us-east-1 >/dev/null 2>&1
                             ''',
                             returnStatus: true
                         ) == 0 ? 'true' : 'false'
@@ -185,19 +181,10 @@ sh '''
                             export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
                             export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
                             export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}"
-                            export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION}"
-
-                            # Docker로 ECR 로그인 패스워드 획득
-                            ECR_PASSWORD=$(docker run --rm \
-                                -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
-                                -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
-                                -e AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
-                                -e AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION}" \
-                                amazon/aws-cli:latest \
-                                ecr get-login-password --region ${AWS_DEFAULT_REGION})
+                            export AWS_DEFAULT_REGION="us-east-1"
 
                             # ECR 로그인
-                            echo $ECR_PASSWORD | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
                             # Docker 이미지 빌드
                             docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} \
