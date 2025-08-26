@@ -6,9 +6,15 @@ spring:
       port: ${REDIS_PORT}
       username: ${REDIS_USERNAME}
       password: ${REDIS_PASSWORD}
-      timeout: 10000ms
+      timeout: 30000ms
       ssl:
         enabled: true
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+        shutdown-timeout: 100ms
 
 management:
   tracing:
