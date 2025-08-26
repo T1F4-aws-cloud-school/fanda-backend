@@ -61,7 +61,7 @@ pipeline {
                     string(credentialsId: 'kubeconfig-base64', variable: 'KUBECONFIG_B64')
                 ]) {
                     sh '''
-                        echo "Feedback Secret 배포 시작..."
+                        echo "Feedback Secret 배포 시작...!"
 
                         # AWS 자격증명 설정
                         export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
