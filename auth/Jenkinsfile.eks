@@ -57,7 +57,6 @@ pipeline {
                     string(credentialsId: 'rds-username', variable: 'DB_USERNAME'),
                     string(credentialsId: 'rds-password', variable: 'DB_PASSWORD'),
                     string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
-                    string(credentialsId: 'redis-password', variable: 'REDIS_PASSWORD'),
                     string(credentialsId: 'kubeconfig-base64', variable: 'KUBECONFIG_B64')
                 ]) {
                     sh '''
@@ -88,7 +87,6 @@ pipeline {
                           --from-literal=DB_ROOT_USERNAME="${DB_USERNAME}" \
                           --from-literal=DB_ROOT_PASSWORD="${DB_PASSWORD}" \
                           --from-literal=JWT_SECRET="${JWT_SECRET}" \
-                          --from-literal=REDIS_PASSWORD="${REDIS_PASSWORD}" \
                           -n fanda-be-auth
 
                         # Secret 생성 확인
