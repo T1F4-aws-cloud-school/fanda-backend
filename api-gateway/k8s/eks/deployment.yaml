@@ -29,7 +29,7 @@ spec:
       containers:
         - name: fanda-gateway
           # ECR 이미지 (Jenkins가 자동으로 업데이트)
-          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/api-gateway:a2c28b8a
+          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/api-gateway:f56d1a24
           imagePullPolicy: Always
 
           ports:
