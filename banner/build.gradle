@@ -60,6 +60,9 @@ dependencies {
     implementation 'io.netty:netty-codec-http2:4.1.124.Final'
 
     implementation 'software.amazon.awssdk:sts'
+
+	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+	runtimeOnly  'io.opentelemetry:opentelemetry-exporter-otlp'
 }
 
 

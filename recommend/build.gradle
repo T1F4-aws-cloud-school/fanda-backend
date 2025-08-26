@@ -36,10 +36,10 @@ dependencies {
 	// aws sdk for s3
 	implementation platform('software.amazon.awssdk:bom:2.25.4')
 	implementation 'software.amazon.awssdk:s3'
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	runtimeOnly 'com.mysql:mysql-connector-j'
-
+	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+	runtimeOnly  'io.opentelemetry:opentelemetry-exporter-otlp'
 }
 
 tasks.named('test') {

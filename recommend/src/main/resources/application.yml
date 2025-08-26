@@ -28,3 +28,10 @@ personalize:
   s3:
     bucket: ${AWS_S3_BUCKET}
     base-prefix: personalize
+
+management:
+  tracing:
+    sampling.probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTLP_HTTP_ENDPOINT:http://otel-collector.fanda-monitoring.svc.cluster.local:4318/v1/traces}

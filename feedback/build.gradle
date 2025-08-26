@@ -51,6 +51,8 @@ dependencies {
 	// aws sdk for s3
 	implementation platform('software.amazon.awssdk:bom:2.25.4')
 	implementation 'software.amazon.awssdk:s3'
+	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+	runtimeOnly  'io.opentelemetry:opentelemetry-exporter-otlp'
 }
 
 dependencyManagement {
