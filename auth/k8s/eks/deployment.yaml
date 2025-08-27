@@ -43,7 +43,7 @@ spec:
       containers:
         - name: fanda-auth
           # ECR 이미지 (Jenkins가 자동으로 업데이트)
-          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/auth-service:ccc30675
+          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/auth-service:9c2e7063
           imagePullPolicy: Always
 
           ports:
