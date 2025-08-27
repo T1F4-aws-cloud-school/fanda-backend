@@ -43,7 +43,7 @@ spec:
       containers:
         - name: fanda-gateway
           # ECR 이미지 (Jenkins가 자동으로 업데이트)
-          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/api-gateway:d3186a77
+          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/api-gateway:ebb8b176
           imagePullPolicy: Always
 
           ports:
@@ -64,13 +64,35 @@ spec:
             - name: JAVA_OPTS
               value: "-Xms256m -Xmx512m -Djava.security.egd=file:/dev/./urandom"
 
-            # OpenTelemetry Java Agent 설정
+            # OpenTelemetry Java Agent 설정 (수정됨)
             - name: JAVA_TOOL_OPTIONS
               value: "-javaagent:/opt/otel/opentelemetry-javaagent.jar"
             - name: OTEL_SERVICE_NAME
               value: "api-gateway"
+
+            # DaemonSet을 위한 Host IP 기반 엔드포인트
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://otel-collector.fanda-monitoring.svc.cluster.local:4318"
+              value: "http://$(HOST_IP):4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+
+            # Host IP를 환경변수로 전달
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+
+            # 추가 OpenTelemetry 설정
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_PROPAGATORS
+              value: "tracecontext,baggage"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=api-gateway,service.namespace=fanda-gateway"
+
+            # 디버깅용 (운영 시 제거 가능)
+            - name: OTEL_LOG_LEVEL
+              value: "DEBUG"
 
             # JWT 설정 (Secret에서 참조)
             - name: JWT_SECRET
