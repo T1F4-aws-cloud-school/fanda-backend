@@ -11,7 +11,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
-@Profile("prod")
+@Profile("dev")
 public class RedisConfig {
 
     @Value("${REDIS_HOST}")
@@ -32,7 +32,7 @@ public class RedisConfig {
 
         // ElastiCache TLS 설정 (타임아웃 제거)
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-                .useSsl()  // TLS만 활성화
+                //.useSsl()  // TLS만 활성화
                 .build();
 
         return new LettuceConnectionFactory(redisConfig, clientConfig);

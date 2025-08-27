@@ -53,6 +53,14 @@ aws:
   region: us-east-1
   s3:
     bucket: ${AWS_S3_BUCKET}
+    presign:
+      expireMinutes: 30
+  lambda:
+    bannerFunction: ${BANNER_LAMBDA_NAME:fanda-banner-bedrock}
+    image:
+      width: 720
+      height: 720
+      format: png
 
 management:
   tracing:
