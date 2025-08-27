@@ -266,7 +266,7 @@ pipeline {
                  env.SKIP_BUILD == 'true' ? "이미지 재사용 성공" : "API Gateway CI/CD 성공"
         }
         unstable { echo "빌드 성공, Git 업데이트 실패!" }
-        failure { echo "API Gateway 빌드 실패" }
+        failure { echo "API Gateway 빌드 실패!" }
         cleanup { sh 'docker container prune -f || true' }
     }
 }
