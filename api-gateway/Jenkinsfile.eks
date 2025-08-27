@@ -263,7 +263,7 @@ pipeline {
         }
         success {
             echo env.SKIP_ALL == 'true' ? "자동 스킵 완료!" :
-                 env.SKIP_BUILD == 'true' ? "이미지 재사용 성공" : "API Gateway CI/CD 성공"
+                 env.SKIP_BUILD == 'true' ? "이미지 재사용 성공!" : "API Gateway CI/CD 성공"
         }
         unstable { echo "빌드 성공, Git 업데이트 실패!" }
         failure { echo "API Gateway 빌드 실패!" }
