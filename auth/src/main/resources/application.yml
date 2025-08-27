@@ -24,26 +24,3 @@ jwt:
 
 server:
   port: 8002
-
-# 관리 및 트레이싱 설정
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-      base-path: /actuator
-  endpoint:
-    health:
-      show-details: always
-  tracing:
-    enabled: true
-    sampling:
-      probability: 1.0
-
-# 디버깅용 로깅 설정 (운영 시 조정 가능)
-logging:
-  level:
-    io.opentelemetry: DEBUG
-    org.springframework.web: INFO
-    org.springframework.security: INFO
-    root: INFO
