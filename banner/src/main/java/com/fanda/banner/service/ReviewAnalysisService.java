@@ -10,18 +10,23 @@ import com.fanda.banner.repository.CollectedReviewRepository;
 import com.fanda.banner.repository.ShopClient;
 import com.fanda.banner.template.PromptTemplate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReviewAnalysisService {
@@ -31,6 +36,7 @@ public class ReviewAnalysisService {
     private final S3Uploader s3Uploader;
     //private final ImageGenerationService imageGenerationService;
     private final ShopClient shopClient;
+    private final BannerLambdaService bannerLambdaService;
 
     @Transactional
     public List<ReportResponseDto> generateAndUploadPdfReports(){
@@ -70,7 +76,7 @@ public class ReviewAnalysisService {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
 
         // 4. 파일명 생성
-        String imageKey = "banners/banner_"+timestamp+".png";
+        //String imageKey = "banners/banner_"+timestamp+".png";
         String positiveKey = "reports/positive/positive_" + timestamp + ".pdf";
         String negativeKey = "reports/negative/negative_" + timestamp + ".pdf";
 
@@ -87,6 +93,26 @@ public class ReviewAnalysisService {
             s3Uploader.uploadFile(positivePdf, positiveKey);
             s3Uploader.uploadFile(negativePdf, negativeKey);
 
+            // 캐치 프레이즈 추출 실패 시
+            if(phrases.size() == 1 && "[캐치프레이즈 추출 실패]".equals(phrases.get(0))){
+                for(CollectedReview r : reviews)    r.markAfter();
+                collectedReviewRepository.saveAll(reviews);
+                return List.of(new ReportResponseDto(null, "[캐치프레이즈 추출 실패]"));
+            }
+
+            // 문구별 Lambda 호출, S3 업로드, Presigned URL 생성
+            List<ReportResponseDto> results = new ArrayList<>();
+            int i = 1;
+            for(String phraseKo : phrases){
+                try{
+                    BannerLambdaService.Result r = bannerLambdaService.invokeGenerateBanner(phraseKo, i++);
+                    results.add(new ReportResponseDto(r.imageBannerUrl(), r.chatPhraseKo()));
+                } catch (Exception lambdaEx){
+                    log.error("[BANNER] invokeGenerateBanner failed. phrase='{}'", phraseKo, lambdaEx);
+                    results.add(new ReportResponseDto(null, "[이미지 생성 실패] "+phraseKo));
+                }
+            }
+
             // 업로드 성공 시 AFTER 전환
             for(CollectedReview r : reviews){
                 r.markAfter();
@@ -96,7 +122,8 @@ public class ReviewAnalysisService {
             //return new ReportResponseDto(imageUrl, catchPhraseKo);
             //String catchPhraseKo = extractCatchPhrases(positiveReport);
             //return new ReportResponseDto(null, catchPhraseKo);
-            return phrases.stream().map(p->new ReportResponseDto(null, p)).toList();
+            //return phrases.stream().map(p->new ReportResponseDto(null, p)).toList();
+            return results;
         }
         catch (Exception e){
             e.printStackTrace();
