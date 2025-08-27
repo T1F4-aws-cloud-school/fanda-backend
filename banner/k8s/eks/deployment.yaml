@@ -38,7 +38,7 @@ spec:
               protocol: TCP
 
           env:
-            # Spring Boot 프로파일
+            # Spring Boot 프로파일 - EKS에서는 prod 프로파일 사용
             - name: SPRING_PROFILES_ACTIVE
               value: "prod"
 
@@ -57,7 +57,7 @@ spec:
             - name: DB_HOST
               value: "fanda-rds-instance.cetoqsmoe8u7.us-east-1.rds.amazonaws.com"
 
-            # 데이터베이스 인증 정보
+            # 데이터베이스 인증 정보 (Secret에서 참조)
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -70,14 +70,14 @@ spec:
                   name: fanda-banner-secret
                   key: DB_ROOT_PASSWORD
 
-            # AWS S3 설정
+            # AWS S3 설정 (Secret에서 참조)
             - name: AWS_S3_BUCKET
               valueFrom:
                 secretKeyRef:
                   name: fanda-banner-secret
                   key: AWS_S3_BUCKET
 
-            # AWS 자격증명
+            # AWS 자격증명 (Secret에서 참조)
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -102,16 +102,29 @@ spec:
                   name: fanda-banner-secret
                   key: AWS_REGION
 
-            # MSK Kafka 설정
+            # MSK Serverless Kafka 설정 (IAM 인증)
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
               valueFrom:
                 secretKeyRef:
                   name: fanda-banner-secret
                   key: KAFKA_BOOTSTRAP_SERVERS
 
+            # MSK IAM 인증 설정
+            - name: SPRING_KAFKA_SECURITY_PROTOCOL
+              value: "SASL_SSL"
+            - name: SPRING_KAFKA_PROPERTIES_SASL_MECHANISM
+              value: "AWS_MSK_IAM"
+            - name: SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG
+              value: "software.amazon.msk.auth.iam.IAMLoginModule required;"
+            - name: SPRING_KAFKA_PROPERTIES_SASL_CLIENT_CALLBACK_HANDLER_CLASS
+              value: "software.amazon.msk.auth.iam.IAMClientCallbackHandler"
+
             # JPA 설정
             - name: JPA_DDL_AUTO
-              value: "update"
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-banner-secret
+                  key: JPA_DDL_AUTO
 
           resources:
             requests:
