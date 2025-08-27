@@ -26,6 +26,20 @@ spec:
         component: backend
         service: auth
     spec:
+      # OpenTelemetry Java Agent 다운로드
+      initContainers:
+        - name: otel-agent-download
+          image: curlimages/curl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              curl -L -o /otel/opentelemetry-javaagent.jar \
+              https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+          volumeMounts:
+            - name: otel-agent
+              mountPath: /otel
+
       containers:
         - name: fanda-auth
           # ECR 이미지 (Jenkins가 자동으로 업데이트)
@@ -49,6 +63,14 @@ spec:
             # JVM 옵션
             - name: JAVA_OPTS
               value: "-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
+
+            # OpenTelemetry Java Agent 설정
+            - name: JAVA_TOOL_OPTIONS
+              value: "-javaagent:/opt/otel/opentelemetry-javaagent.jar"
+            - name: OTEL_SERVICE_NAME
+              value: "auth"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.fanda-monitoring.svc.cluster.local:4318"
 
             # RDS MySQL 연결 정보
             - name: SPRING_DATASOURCE_URL
@@ -94,6 +116,16 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "500m"
+
+          # Volume mount 추가
+          volumeMounts:
+            - name: otel-agent
+              mountPath: /opt/otel
+
+      # Volume 추가
+      volumes:
+        - name: otel-agent
+          emptyDir: {}
 
       dnsPolicy: ClusterFirst
       restartPolicy: Always
