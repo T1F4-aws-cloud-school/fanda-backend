@@ -73,9 +73,24 @@ jwt:
 server:
   port: 8001
 
+# 관리 및 트레이싱 설정
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
   tracing:
-    sampling.probability: 1.0
-  otlp:
-    tracing:
-      endpoint: ${OTLP_HTTP_ENDPOINT:http://otel-collector.fanda-monitoring.svc.cluster.local:4318/v1/traces}
+    enabled: true
+    sampling:
+      probability: 1.0
+
+# 디버깅용 로깅 설정 (운영 시 조정 가능)
+logging:
+  level:
+    io.opentelemetry: DEBUG
+    org.springframework.cloud.gateway: INFO
+    root: INFO
