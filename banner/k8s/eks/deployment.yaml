@@ -29,7 +29,7 @@ spec:
       containers:
         - name: fanda-banner
           # ECR 이미지 (Jenkins가 자동으로 업데이트)
-          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/banner-service:611518b7
+          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/banner-service:f45d6214
           imagePullPolicy: Always
 
           ports:
