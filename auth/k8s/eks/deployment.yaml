@@ -28,8 +28,8 @@ spec:
     spec:
       containers:
         - name: fanda-auth
-          # ECR 이미지 (Jenkins가 자동으로 업데이트)
-          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/auth-service:ccc30675
+          # Jenkins가 자동으로 업데이트하는 이미지 태그
+          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/auth-service:d2400ecf
           imagePullPolicy: Always
 
           ports:
@@ -38,7 +38,7 @@ spec:
               protocol: TCP
 
           env:
-            # Spring Boot 프로파일 - EKS에서는 prod 프로파일 사용
+            # Spring Boot 프로파일
             - name: SPRING_PROFILES_ACTIVE
               value: "prod"
 
@@ -50,12 +50,12 @@ spec:
             - name: JAVA_OPTS
               value: "-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
 
-            # RDS MySQL 연결 정보
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://fanda-rds-instance.cetoqsmoe8u7.us-east-1.rds.amazonaws.com:3306/auth_db?useSSL=true&requireSSL=true&serverTimezone=Asia/Seoul"
+              value: "jdbc:mysql://mysql.fanda-db-ms.svc.cluster.local:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul"
 
+            # 데이터베이스 연결 정보
             - name: DB_HOST
-              value: "fanda-rds-instance.cetoqsmoe8u7.us-east-1.rds.amazonaws.com"
+              value: "mysql.fanda-db-ms.svc.cluster.local"
 
             # 데이터베이스 인증 정보
             - name: DB_USERNAME
@@ -70,11 +70,17 @@ spec:
                   name: fanda-auth-secret
                   key: DB_ROOT_PASSWORD
 
-            # ElastiCache Redis 연결 정보
+            # Redis 연결 정보 - USERNAME 제거, PASSWORD만 사용
             - name: REDIS_HOST
-              value: "master.fanda-redis-cluster.l4acue.use1.cache.amazonaws.com"
+              value: "redis-master.fanda-redis.svc.cluster.local"
             - name: REDIS_PORT
               value: "6379"
+            # REDIS_USERNAME 제거 - Redis 6.x에서 username 없이 password만 사용
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fanda-auth-secret
+                  key: REDIS_PASSWORD
 
             # JWT 설정 (Secret에서 참조)
             - name: JWT_SECRET
@@ -85,7 +91,7 @@ spec:
 
             # JPA 설정
             - name: JPA_DDL_AUTO
-              value: "update"
+              value: "update"  # 처음 배포시 테이블 자동 생성
 
           resources:
             requests:
