@@ -26,20 +26,6 @@ spec:
         component: gateway
         service: api-gateway
     spec:
-      # OpenTelemetry Java Agent 다운로드
-      initContainers:
-        - name: otel-agent-download
-          image: curlimages/curl:latest
-          command:
-            - /bin/sh
-            - -c
-            - |
-              curl -L -o /otel/opentelemetry-javaagent.jar \
-              https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
-          volumeMounts:
-            - name: otel-agent
-              mountPath: /otel
-
       containers:
         - name: fanda-gateway
           # ECR 이미지 (Jenkins가 자동으로 업데이트)
@@ -64,13 +50,13 @@ spec:
             - name: JAVA_OPTS
               value: "-Xms256m -Xmx512m -Djava.security.egd=file:/dev/./urandom"
 
-            # OpenTelemetry Java Agent 설정 (수정됨)
+            # OpenTelemetry Java Agent 설정
             - name: JAVA_TOOL_OPTIONS
               value: "-javaagent:/opt/otel/opentelemetry-javaagent.jar"
             - name: OTEL_SERVICE_NAME
               value: "api-gateway"
 
-            # DaemonSet을 위한 Host IP 기반 엔드포인트
+            # OpenTelemetry 엔드포인트
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector.fanda-monitoring.svc.cluster.local:4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
@@ -84,7 +70,7 @@ spec:
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "service.name=api-gateway,service.namespace=fanda-gateway"
 
-            # 디버깅용 (운영 시 제거 가능)
+            # 로그 레벨 설정
             - name: OTEL_LOG_LEVEL
               value: "INFO"
 
@@ -116,15 +102,8 @@ spec:
               memory: "512Mi"
               cpu: "300m"
 
-          # Volume mount 추가
-          volumeMounts:
-            - name: otel-agent
-              mountPath: /opt/otel
-
-      # Volume 추가
-      volumes:
-        - name: otel-agent
-          emptyDir: {}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
 
       # 보안 컨텍스트
       securityContext:

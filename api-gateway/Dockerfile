@@ -29,13 +29,16 @@ FROM eclipse-temurin:17-jre-alpine
 # 환경 변수 설정
 ENV TZ=Asia/Seoul
 
-# 보안 패치 및 필수 패키지 설치
+# 보안 패치 및 필수 패키지 설치 + OpenTelemetry Agent 다운로드
 RUN apk update && \
     apk upgrade && \
-    apk add --no-cache \
-        curl \
-        tzdata && \
+    apk add --no-cache curl tzdata && \
     rm -rf /var/cache/apk/* /tmp/*
+
+# OpenTelemetry Agent 사전 다운로드 (빌드 시점에)
+RUN mkdir -p /opt/otel && \
+    curl -L -o /opt/otel/opentelemetry-javaagent.jar \
+    https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
 
 # 애플리케이션 사용자 생성
 RUN addgroup -g 1000 appuser && \
@@ -47,7 +50,8 @@ RUN chown appuser:appuser /app
 
 # 빌드된 JAR 파일 복사
 COPY --from=builder /app/build/libs/*.jar app.jar
-RUN chown appuser:appuser app.jar
+RUN chown appuser:appuser app.jar && \
+    chown -R appuser:appuser /opt/otel
 
 # 사용자 변경
 USER appuser
