@@ -27,6 +27,14 @@ spring:
           filters:
             - StripPrefix=1
 
+        # Recommend 서비스 추가
+        - id: recommend
+          uri: ${RECOMMEND_SERVICE_URL:http://fanda-recommend-service.fanda-be-recommend.svc.cluster.local:8005}
+          predicates:
+            - Path=/recommend/**
+          filters:
+            - StripPrefix=1
+
         # Banner 서비스 - Reports (구체적 경로 먼저)
         - id: banner-reports
           uri: ${BANNER_SERVICE_URL:http://fanda-banner-service.fanda-be-marketing.svc.cluster.local:8004}
