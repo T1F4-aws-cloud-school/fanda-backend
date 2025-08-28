@@ -254,7 +254,7 @@ pipeline {
                         echo "배포 업데이트 완료 - ArgoCD가 배포를 진행합니다"
 
                     } catch (Exception e) {
-                        echo "배포 업데이트 실패: ${e.message}"
+                        echo "배포 업데이트 실패..: ${e.message}"
                         currentBuild.result = 'UNSTABLE'
                     }
                 }
