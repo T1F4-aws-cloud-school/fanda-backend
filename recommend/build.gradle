@@ -40,6 +40,9 @@ dependencies {
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
 	runtimeOnly  'io.opentelemetry:opentelemetry-exporter-otlp'
+	// aws personalize
+	implementation 'software.amazon.awssdk:personalize'
+	implementation 'software.amazon.awssdk:personalizeruntime'
 }
 
 tasks.named('test') {

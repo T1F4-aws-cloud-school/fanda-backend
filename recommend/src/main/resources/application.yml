@@ -20,7 +20,7 @@ server:
   port: 8005
 
 etl:
-  base-url: http://localhost:5000
+  base-url: ${ETL_BASE_URL:${etl.base-url:http://fanda-etl-service.fanda-be-etl.svc:5000}}
   connect-timeout-millis: 10000
   read-timeout-millis: 600000
 
