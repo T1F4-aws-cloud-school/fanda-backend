@@ -72,15 +72,9 @@ spec:
 
             # DaemonSet을 위한 Host IP 기반 엔드포인트
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://$(HOST_IP):4317"
+              value: "http://otel-collector.fanda-monitoring.svc.cluster.local:4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: "grpc"
-
-            # Host IP를 환경변수로 전달
-            - name: HOST_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.hostIP
 
             # 추가 OpenTelemetry 설정
             - name: OTEL_TRACES_EXPORTER
@@ -92,7 +86,7 @@ spec:
 
             # 디버깅용 (운영 시 제거 가능)
             - name: OTEL_LOG_LEVEL
-              value: "DEBUG"
+              value: "INFO"
 
             # JWT 설정 (Secret에서 참조)
             - name: JWT_SECRET
