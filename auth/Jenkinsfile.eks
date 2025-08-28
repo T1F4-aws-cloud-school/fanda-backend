@@ -106,7 +106,7 @@ pipeline {
                 dir('auth') {
                     sh '''
                         for file in build.gradle src/main/java Dockerfile; do
-                            [ ! -e "$file" ] && echo "필수 파일/디렉토리 누락: $file" && exit 1
+                            [ ! -e "$file" ] && echo "필수 파일/디렉토리 누락..: $file" && exit 1
                         done
 
                         [ -f "gradlew" ] && chmod +x gradlew
