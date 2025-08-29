@@ -92,7 +92,7 @@ pipeline {
                         # Secret 생성 확인
                         kubectl get secret fanda-auth-secret -n fanda-be-auth
 
-                        echo "Secret 배포 완료!"
+                        echo "Secret 배포 완료!!"
                         rm -f /tmp/kubeconfig
                     '''
                 }
