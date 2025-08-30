@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -200,7 +201,6 @@ pipeline {
             }
         }
 
-
         stage('보안 스캔') {
             when {
                 allOf {
@@ -226,8 +226,14 @@ pipeline {
                         # ECR 로그인 (이미지 풀을 위해)
                         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-                        # Trivy 서버를 통한 보안 스캔
-                        trivy image --server http://10.0.106.39:31690 \
+                        # Docker를 통한 Trivy 보안 스캔
+                        docker run --rm \
+                            -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+                            -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+                            -e AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
+                            -v /var/run/docker.sock:/var/run/docker.sock \
+                            aquasec/trivy:latest image \
+                            --server http://10.0.106.39:31690 \
                             --exit-code 1 --severity CRITICAL \
                             ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
@@ -236,7 +242,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('배포 업데이트') {
             when { environment name: 'SKIP_ALL', value: 'false' }
