@@ -200,6 +200,44 @@ pipeline {
             }
         }
 
+
+        stage('보안 스캔') {
+            when {
+                allOf {
+                    environment name: 'SKIP_ALL', value: 'false'
+                    environment name: 'SKIP_BUILD', value: 'false'
+                }
+            }
+            steps {
+                withCredentials([
+                    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
+                    string(credentialsId: 'aws-session-token', variable: 'AWS_SESSION_TOKEN')
+                ]) {
+                    sh '''
+                        echo "Trivy 보안 스캔 실행..."
+
+                        # AWS 자격증명 설정
+                        export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+                        export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+                        export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}"
+                        export AWS_DEFAULT_REGION="us-east-1"
+
+                        # ECR 로그인 (이미지 풀을 위해)
+                        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+                        # Trivy 서버를 통한 보안 스캔
+                        trivy image --server http://10.0.106.39:31690 \
+                            --exit-code 1 --severity CRITICAL \
+                            ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+                        echo "보안 스캔 완료"
+                    '''
+                }
+            }
+        }
+
+
         stage('배포 업데이트') {
             when { environment name: 'SKIP_ALL', value: 'false' }
             steps {
