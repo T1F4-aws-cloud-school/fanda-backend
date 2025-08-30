@@ -122,7 +122,7 @@ pipeline {
             steps {
                 dir('auth') {
                     sh '''
-                        echo "Auth 서비스 Gradle 빌드 시작..."
+                        echo "Auth 서비스 Gradle 빌드 시작...!"
                         if [ -f "gradlew" ]; then
                             ./gradlew clean build -x test --no-daemon
                         else
