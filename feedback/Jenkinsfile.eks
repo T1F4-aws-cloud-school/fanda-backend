@@ -97,7 +97,7 @@ pipeline {
                         # Secret 생성 확인
                         kubectl get secret fanda-feedback-secret -n fanda-be-marketing
 
-                        echo "Feedback Secret 배포 완료"
+                        echo "Feedback Secret 배포 완료!"
                         rm -f /tmp/kubeconfig
                     '''
                 }
@@ -107,7 +107,7 @@ pipeline {
         stage('환경 검증') {
             when { environment name: 'SKIP_ALL', value: 'false' }
             steps {
-                echo "Feedback 서비스 빌드 시작: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+                echo "Feedback 서비스 빌드 시작!: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
                 dir('feedback') {
                     sh '''
                         for file in build.gradle src/main/java Dockerfile; do
