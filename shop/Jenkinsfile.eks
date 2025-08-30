@@ -90,7 +90,7 @@ pipeline {
                         # Secret 생성 확인
                         kubectl get secret fanda-shop-secret -n fanda-be-shop
 
-                        echo "Shop Secret 배포 완료"
+                        echo "Shop Secret 배포 완료!"
                         rm -f /tmp/kubeconfig
                     '''
                 }
