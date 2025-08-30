@@ -67,12 +67,12 @@ pipeline {
                         export AWS_DEFAULT_REGION="us-east-1"
 
                         # kubeconfig 파일 생성
-                        echo $KUBECONFIG_B64 | base64 -d > /tmp/kubeconfig
-                        chmod 600 /tmp/kubeconfig
-                        export KUBECONFIG=/tmp/kubeconfig
+                        echo $KUBECONFIG_B64 | base64 -d > ./kubeconfig
+                        chmod 600 ./kubeconfig
+                        export KUBECONFIG=./kubeconfig
 
                         # EKS kubeconfig 업데이트
-                        aws eks update-kubeconfig --region us-east-1 --name fanda-eks --kubeconfig /tmp/kubeconfig
+                        aws eks update-kubeconfig --region us-east-1 --name fanda-eks --kubeconfig ./kubeconfig
 
                         # 네임스페이스 존재 확인
                         kubectl get namespace fanda-gateway || kubectl create namespace fanda-gateway
@@ -89,7 +89,7 @@ pipeline {
                         kubectl get secret fanda-gateway-secret -n fanda-gateway
 
                         echo "Gateway Secret 배포 완료"
-                        rm -f /tmp/kubeconfig
+                        rm -f ./kubeconfig
                     '''
                 }
             }
