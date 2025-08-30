@@ -247,7 +247,7 @@ pipeline {
                         )]) {
                             sh '''
                                 git push https://${GITHUB_TOKEN}@github.com/T1F4-aws-cloud-school/fanda-backend.git HEAD:develop
-                                echo "Git 푸시 성공"
+                                echo "Git 푸시 성공!"
                             '''
                         }
 
