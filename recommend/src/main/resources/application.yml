@@ -20,11 +20,23 @@ server:
   port: 8005
 
 etl:
-  base-url: ${ETL_BASE_URL:${etl.base-url:http://fanda-etl-service.fanda-be-etl.svc:5000}}
+  base-url: ${ETL_BASE_URL:${etl.base-url:http://k8s-fandabee-fandaetl-d06eb86c05-f995576d72679abd.elb.us-east-1.amazonaws.com:5000}}
   connect-timeout-millis: 10000
   read-timeout-millis: 600000
 
 personalize:
+  region: us-east-1
+  importRoleArn: arn:aws:iam::746491138596:role/fanda-Personalized-access
+
+  datasetGroupName: fanda-dsg
+  datasetNames:
+    interactions: fanda-interactions-dataset
+    users: fanda-users-dataset
+    items: fanda-items-dataset
+  solutionName: fanda-solution
+  recipeArn: arn:aws:personalize:::recipe/aws-user-personalization
+  campaignName: fanda-campaign
+  minProvisionedTPS: 1
   s3:
     bucket: ${AWS_S3_BUCKET}
     base-prefix: personalize

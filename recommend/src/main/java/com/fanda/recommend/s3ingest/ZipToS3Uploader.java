@@ -40,7 +40,9 @@ public class ZipToS3Uploader {
         String runId = runIdMaybeNull != null && !runIdMaybeNull.isBlank() ? runIdMaybeNull : generateRunId();
 
         String datePrefix = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).format(DATE_FMT);
-        String s3Prefix = trim(properties.getBasePrefix()) + "/" + datePrefix + "/" + runId + "/";
+        String basePrefix = trim(properties.getBasePrefix());
+        String s3Prefix = basePrefix + "/" + datePrefix + "/" + runId + "/"; // 실행별 경로
+        String latestPrefix = basePrefix + "/latest/";
 
         Map<String, File> tempFiles = new HashMap<>();
         Set<String> seen = new HashSet<>();
@@ -72,6 +74,7 @@ public class ZipToS3Uploader {
         // 최소 헤더 검증
         validateInteractionsHeader(tempFiles.get("interactions.csv"));
         String bucket = properties.getBucket();
+        // 1) 실행별 경로에 업로드
         String usersKey = s3Prefix + "users.csv";
         String itemsKey = s3Prefix + "items.csv";
         String interactionKey = s3Prefix + "interactions.csv";
@@ -84,8 +87,17 @@ public class ZipToS3Uploader {
         headOk(bucket, itemsKey);
         headOk(bucket, interactionKey);
 
+        // 2) latest 경로에도 동일 파일 덮어쓰기  ← 추가
+        String usersKeyLatest = latestPrefix + "users.csv";
+        String itemsKeyLatest = latestPrefix + "items.csv";
+        String interactionKeyLatest = latestPrefix + "interactions.csv";
+        putCsv(bucket, usersKeyLatest, tempFiles.get("users.csv"));
+        putCsv(bucket, itemsKeyLatest, tempFiles.get("items.csv"));
+        putCsv(bucket, interactionKeyLatest, tempFiles.get("interactions.csv"));
+
+        // 3) 실행별 manifest.json (그대로)
         String manifestKey = s3Prefix + "manifest.json";
-        try{
+        try {
             Map<String, Object> manifest = new HashMap<>();
             manifest.put("runId", runId);
             manifest.put("prefix", s3Prefix);
@@ -103,6 +115,20 @@ public class ZipToS3Uploader {
                     .contentType(MediaType.APPLICATION_JSON_VALUE)
                     .build();
             s3Client.putObject(mReq, RequestBody.fromBytes(json));
+
+            // 4) latest/latest.json 포인터 기록  ← 추가
+            Map<String, Object> pointer = new HashMap<>();
+            pointer.put("runId", runId);
+            pointer.put("prefix", s3Prefix);
+            pointer.put("updatedAt", ZonedDateTime.now().toString());
+            byte[] pointerJson = objectMapper.writeValueAsBytes(pointer);
+            PutObjectRequest pReq = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(latestPrefix + "latest.json")
+                    .contentType(MediaType.APPLICATION_JSON_VALUE)
+                    .build();
+            s3Client.putObject(pReq, RequestBody.fromBytes(pointerJson));
+
         } catch (Exception ignore) {
         } finally {
             for (File f : tempFiles.values()) {

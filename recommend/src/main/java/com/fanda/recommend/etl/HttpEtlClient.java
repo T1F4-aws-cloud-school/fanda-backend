@@ -34,7 +34,8 @@ public class HttpEtlClient implements EtlClient{
                     .uri(URI.create(url))
                     .timeout(Duration.ofMillis(etlProperties.getReadTimeoutMillis()))
                     .header("Accept", "application/zip")
-                    .POST(HttpRequest.BodyPublishers.noBody()) //body 없음
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString("{}"))
                     .build();
 
             HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
