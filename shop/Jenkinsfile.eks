@@ -56,6 +56,8 @@ pipeline {
                     string(credentialsId: 'aws-session-token', variable: 'AWS_SESSION_TOKEN'),
                     string(credentialsId: 'rds-username', variable: 'DB_USERNAME'),
                     string(credentialsId: 'rds-password', variable: 'DB_PASSWORD'),
+                    string(credentialsId: 's3-bucket', variable: 'AWS_S3_BUCKET'),
+                    string(credentialsId: 'kafka-servers', variable: 'KAFKA_SERVERS'),
                     string(credentialsId: 'kubeconfig-base64', variable: 'KUBECONFIG_B64')
                 ]) {
                     sh '''
@@ -76,21 +78,30 @@ pipeline {
                         aws eks update-kubeconfig --region us-east-1 --name fanda-eks --kubeconfig /tmp/kubeconfig
 
                         # 네임스페이스 존재 확인
-                        kubectl get namespace fanda-be-shop || kubectl create namespace fanda-be-shop
+                        kubectl get namespace fanda-be-commerce || kubectl create namespace fanda-be-commerce
 
                         # 기존 Secret 삭제
-                        kubectl delete secret fanda-shop-secret -n fanda-be-shop --ignore-not-found=true
+                        kubectl delete secret fanda-shop-secret -n fanda-be-commerce --ignore-not-found=true
 
-                        # 새 Secret 생성 (RDS 계정 사용)
+                        # 새 Secret 생성 (Shop Service용)
                         kubectl create secret generic fanda-shop-secret \
                           --from-literal=DB_ROOT_USERNAME="${DB_USERNAME}" \
                           --from-literal=DB_ROOT_PASSWORD="${DB_PASSWORD}" \
-                          -n fanda-be-shop
+                          --from-literal=DB_USER_USERNAME="fandauser" \
+                          --from-literal=DB_USER_PASSWORD="fandapass" \
+                          --from-literal=AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+                          --from-literal=AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+                          --from-literal=AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
+                          --from-literal=AWS_REGION="us-east-1" \
+                          --from-literal=AWS_S3_BUCKET="${AWS_S3_BUCKET}" \
+                          --from-literal=KAFKA_BOOTSTRAP_SERVERS="${KAFKA_SERVERS}" \
+                          --from-literal=JPA_DDL_AUTO="update" \
+                          -n fanda-be-commerce
 
                         # Secret 생성 확인
-                        kubectl get secret fanda-shop-secret -n fanda-be-shop
+                        kubectl get secret fanda-shop-secret -n fanda-be-commerce
 
-                        echo "Shop Secret 배포 완료!"
+                        echo "Shop Secret 배포 완료"
                         rm -f /tmp/kubeconfig
                     '''
                 }
@@ -109,7 +120,7 @@ pipeline {
 
                         [ -f "gradlew" ] && chmod +x gradlew
 
-                        echo "Shop 서비스 환경 검증 완료"
+                        echo "Shop 서비스 환경 검증 완료!"
                     '''
                 }
             }
@@ -202,6 +213,48 @@ pipeline {
             }
         }
 
+        stage('보안 스캔') {
+            when {
+                allOf {
+                    environment name: 'SKIP_ALL', value: 'false'
+                    environment name: 'SKIP_BUILD', value: 'false'
+                }
+            }
+            steps {
+                withCredentials([
+                    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
+                    string(credentialsId: 'aws-session-token', variable: 'AWS_SESSION_TOKEN')
+                ]) {
+                    sh '''
+                        echo "Trivy 보안 스캔 실행 (Standalone 모드)..."
+
+                        # AWS 자격증명 설정
+                        export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+                        export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+                        export AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}"
+                        export AWS_DEFAULT_REGION="us-east-1"
+
+                        # ECR 로그인 (이미지 풀을 위해)
+                        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+                        # Docker를 통한 Trivy 보안 스캔 (Standalone 모드)
+                        docker run --rm \
+                            -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+                            -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+                            -e AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
+                            -v /var/run/docker.sock:/var/run/docker.sock \
+                            aquasec/trivy:latest image \
+                            --timeout 10m \
+                            --exit-code 1 --severity CRITICAL \
+                            ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+                        echo "보안 스캔 완료"
+                    '''
+                }
+            }
+        }
+
         stage('배포 업데이트') {
             when { environment name: 'SKIP_ALL', value: 'false' }
             steps {
@@ -236,11 +289,11 @@ pipeline {
                         )]) {
                             sh '''
                                 git push https://${GITHUB_TOKEN}@github.com/T1F4-aws-cloud-school/fanda-backend.git HEAD:develop
-                                echo "Git 푸시 성공"
+                                echo "Git 푸시 성공!"
                             '''
                         }
 
-                        echo "Shop 배포 업데이트 완료 - ArgoCD가 배포를 진행합니다"
+                        echo "배포 업데이트 완료 - ArgoCD가 배포를 진행합니다"
 
                     } catch (Exception e) {
                         echo "배포 업데이트 실패: ${e.message}"
@@ -264,11 +317,11 @@ pipeline {
             }
         }
         success {
-            echo env.SKIP_ALL == 'true' ? "자동 스킵 완료" :
+            echo env.SKIP_ALL == 'true' ? "자동 스킵 완료!" :
                  env.SKIP_BUILD == 'true' ? "이미지 재사용 성공" : "Shop 서비스 CI/CD 성공"
         }
-        unstable { echo "빌드 성공, Git 업데이트 실패" }
-        failure { echo "Shop 서비스 빌드 실패" }
+        unstable { echo "빌드 성공, Git 업데이트 실패!" }
+        failure { echo "Shop 서비스 빌드 실패!" }
         cleanup { sh 'docker container prune -f || true' }
     }
 }
