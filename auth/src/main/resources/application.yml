@@ -24,3 +24,16 @@ jwt:
 
 server:
   port: 8002
+
+# X-Ray 설정 추가
+aws:
+  xray:
+    enabled: true
+    daemon-address: 127.0.0.1:2000
+    tracing-name: auth-service
+    context-missing: LOG_ERROR
+
+logging:
+  level:
+    com.amazonaws.xray: DEBUG
+    com.fanda: DEBUG
