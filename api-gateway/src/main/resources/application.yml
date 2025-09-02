@@ -88,14 +88,6 @@ management:
     tracing:
       endpoint: ${OTLP_HTTP_ENDPOINT:http://otel-collector.fanda-monitoring.svc.cluster.local:4318/v1/traces}
 
-# X-Ray 설정 추가
-aws:
-  xray:
-    enabled: true
-    daemon-address: 127.0.0.1:2000
-    tracing-name: api-gateway
-    context-missing: LOG_ERROR
-
 logging:
   level:
     com.amazonaws.xray: DEBUG  # X-Ray 로그 확인용
