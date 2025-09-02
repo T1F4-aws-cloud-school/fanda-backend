@@ -102,6 +102,14 @@ spec:
                   name: fanda-banner-secret
                   key: AWS_REGION
 
+            # X-Ray 설정 추가
+            - name: AWS_XRAY_TRACING_NAME
+              value: "banner-service"
+            - name: AWS_XRAY_CONTEXT_MISSING
+              value: "LOG_ERROR"
+            - name: AWS_XRAY_DAEMON_ADDRESS
+              value: "127.0.0.1:2000"
+
             # MSK Serverless Kafka 설정 (IAM 인증)
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
               valueFrom:
