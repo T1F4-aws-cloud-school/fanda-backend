@@ -49,8 +49,15 @@ spring:
 
 server:
   port: 8004
+
+# AWS 설정 통합 (X-Ray 포함)
 aws:
   region: us-east-1
+  xray:
+    enabled: true
+    daemon-address: 127.0.0.1:2000
+    tracing-name: banner-service
+    context-missing: LOG_ERROR
   s3:
     bucket: ${AWS_S3_BUCKET}
     presign:
@@ -68,3 +75,8 @@ management:
   otlp:
     tracing:
       endpoint: ${OTLP_HTTP_ENDPOINT:http://otel-collector.fanda-monitoring.svc.cluster.local:4318/v1/traces}
+
+logging:
+  level:
+    com.amazonaws.xray: DEBUG
+    com.fanda: DEBUG
