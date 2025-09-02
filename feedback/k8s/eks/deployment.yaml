@@ -29,7 +29,7 @@ spec:
       containers:
         - name: fanda-feedback
           # ECR 이미지 (Jenkins가 자동으로 업데이트)
-          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/feedback-service:4e26e404
+          image: 746491138596.dkr.ecr.us-east-1.amazonaws.com/fanda-be/feedback-service:e99497e3
           imagePullPolicy: Always
 
           ports:
