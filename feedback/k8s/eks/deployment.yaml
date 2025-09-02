@@ -111,6 +111,14 @@ spec:
             - name: AWS_REGION
               value: "us-east-1"
 
+            # X-Ray 설정 추가
+            - name: AWS_XRAY_TRACING_NAME
+              value: "feedback-service"
+            - name: AWS_XRAY_CONTEXT_MISSING
+              value: "LOG_ERROR"
+            - name: AWS_XRAY_DAEMON_ADDRESS
+              value: "127.0.0.1:2000"
+
             # JPA 설정
             - name: JPA_DDL_AUTO
               value: "update"
