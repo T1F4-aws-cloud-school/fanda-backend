@@ -15,3 +15,15 @@ management:
   otlp:
     tracing:
       endpoint: ${OTLP_HTTP_ENDPOINT:http://otel-collector.fanda-monitoring.svc.cluster.local:4318/v1/traces}
+
+aws:
+  xray:
+    enabled: true
+    daemon-address: 127.0.0.1:2000
+    tracing-name: auth-service
+    context-missing: LOG_ERROR
+
+logging:
+  level:
+    com.amazonaws.xray: DEBUG
+    com.fanda: DEBUG
