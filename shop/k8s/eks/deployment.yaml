@@ -74,6 +74,16 @@ spec:
             - name: AUTH_SERVICE_URL
               value: "http://fanda-auth-service.fanda-be-auth.svc.cluster.local:8002"
 
+            # X-Ray 설정 추가
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AWS_XRAY_TRACING_NAME
+              value: "shop-service"
+            - name: AWS_XRAY_CONTEXT_MISSING
+              value: "LOG_ERROR"
+            - name: AWS_XRAY_DAEMON_ADDRESS
+              value: "127.0.0.1:2000"
+
             # JPA 설정
             - name: JPA_DDL_AUTO
               value: "update"

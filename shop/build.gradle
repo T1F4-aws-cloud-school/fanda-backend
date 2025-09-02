@@ -39,7 +39,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'commons-fileupload:commons-fileupload:1.6.0'
 	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
-	runtimeOnly  'io.opentelemetry:opentelemetry-exporter-otlp'
+    runtimeOnly  'io.opentelemetry:opentelemetry-exporter-otlp'
+
+    // X-Ray SDK 추가 (이 2줄만 추가)
+    implementation 'com.amazonaws:aws-xray-recorder-sdk-spring:2.15.1'
+    implementation 'com.amazonaws:aws-xray-recorder-sdk-core:2.15.1'
+    
 }
 
 dependencyManagement {

@@ -22,12 +22,26 @@ spring:
 server:
   port: 8006
 
+# AWS 설정 (X-Ray 포함)
+aws:
+  region: us-east-1
+  xray:
+    enabled: true
+    daemon-address: 127.0.0.1:2000
+    tracing-name: shop-service
+    context-missing: LOG_ERROR
+
 management:
   tracing:
     sampling.probability: 1.0
   otlp:
     tracing:
       endpoint: ${OTLP_HTTP_ENDPOINT:http://otel-collector.fanda-monitoring.svc.cluster.local:4318/v1/traces}
+
+logging:
+  level:
+    com.amazonaws.xray: DEBUG
+    com.fanda: DEBUG
 
 #spring:
 #  application:
