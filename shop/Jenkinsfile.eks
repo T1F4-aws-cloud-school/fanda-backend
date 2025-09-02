@@ -230,7 +230,7 @@ pipeline {
                         ).trim()
 
                         if (currentTag == env.IMAGE_TAG) {
-                            echo "이미지 태그 동일 - 스킵"
+                            echo "이미지 태그 동일 - 스킵!"
                             return
                         }
 
