@@ -1,11 +1,10 @@
-package com.fanda.config;
+package com.fanda.api_gateway.config;
 
 import com.amazonaws.xray.AWSXRay;
 import com.amazonaws.xray.AWSXRayRecorderBuilder;
 import com.amazonaws.xray.plugins.EKSPlugin;
 import org.springframework.context.annotation.Configuration;
-
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;  // javax -> jakarta로 변경
 
 @Configuration
 public class XRayConfig {
