@@ -74,6 +74,15 @@ spec:
             - name: OTEL_LOG_LEVEL
               value: "INFO"
 
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AWS_XRAY_TRACING_NAME
+              value: "api-gateway"
+            - name: AWS_XRAY_CONTEXT_MISSING
+              value: "LOG_ERROR"
+            - name: AWS_XRAY_DAEMON_ADDRESS
+              value: "127.0.0.1:2000"
+
             # JWT 설정 (Secret에서 참조)
             - name: JWT_SECRET
               valueFrom:

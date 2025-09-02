@@ -35,6 +35,11 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
 	runtimeOnly 'io.opentelemetry:opentelemetry-exporter-otlp'
+
+    implementation 'com.amazonaws:aws-xray-recorder-sdk-spring:2.15.1'
+    implementation 'com.amazonaws:aws-xray-recorder-sdk-core:2.15.1'
+
+
 }
 
 ext {
