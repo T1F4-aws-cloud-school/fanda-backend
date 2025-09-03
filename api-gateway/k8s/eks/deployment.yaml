@@ -68,7 +68,7 @@ spec:
             - name: OTEL_PROPAGATORS
               value: "tracecontext,baggage"
             - name: OTEL_RESOURCE_ATTRIBUTES
-              value: "service.name=api-gateway,service.namespace=fanda-gateway"
+              value: "service.name=api-gateway,service.namespace=fanda-gateway,aws.hostedIn.k8s.cluster=fanda-eks"
 
             - name: OTEL_TRACES_SAMPLER
               value: "always_on"
@@ -76,6 +76,13 @@ spec:
             # 로그 레벨 설정
             - name: OTEL_LOG_LEVEL
               value: "INFO"
+
+            - name: MANAGEMENT_TRACING_ENABLED
+              value: "true"
+            - name: MANAGEMENT_TRACING_SAMPLING_PROBABILITY
+              value: "1.0"
+            - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+              value: "health,info,metrics,trace"
 
             - name: AWS_REGION
               value: "us-east-1"
