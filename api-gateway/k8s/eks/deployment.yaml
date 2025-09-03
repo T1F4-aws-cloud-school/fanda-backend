@@ -58,7 +58,7 @@ spec:
 
             # OpenTelemetry 엔드포인트
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://cloudwatch-agent.amazon-cloudwatch:4317"
+              value: "http://cloudwatch-agent.amazon-cloudwatch:4315"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: "grpc"
 
