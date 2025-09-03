@@ -58,7 +58,7 @@ spec:
 
             # OpenTelemetry 엔드포인트
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://otel-collector.fanda-monitoring.svc.cluster.local:4317"
+              value: "http://cloudwatch-agent.amazon-cloudwatch:4317"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: "grpc"
 
@@ -69,6 +69,9 @@ spec:
               value: "tracecontext,baggage"
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "service.name=api-gateway,service.namespace=fanda-gateway"
+
+            - name: OTEL_TRACES_SAMPLER
+              value: "always_on"
 
             # 로그 레벨 설정
             - name: OTEL_LOG_LEVEL
